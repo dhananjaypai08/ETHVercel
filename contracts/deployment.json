@@ -1,0 +1,18 @@
+{
+    "Zircuit Testnet": {
+        "Contract Address" : "0x3A92c403CcfD005C19B4a75E8ee178f3963dB85C",
+        "Link": "https://explorer.testnet.zircuit.com/address/0x3A92c403CcfD005C19B4a75E8ee178f3963dB85C"
+    },
+    "Scroll Sepolia": {
+        "Contract Address": "0x6e8c29600df7db8e229cbd95283d0bd9e52c0809",
+        "Link": "https://sepolia.scrollscan.com/address/0x6e8c29600df7db8e229cbd95283d0bd9e52c0809"
+    }, 
+    "Polygon ZKEVM": {
+        "Contract Address": "0x5894f81c558f1a302ce81d31f2562d2b19f7dafd",
+        "Link": "https://cardona-zkevm.polygonscan.com/address/0x5894f81c558f1a302ce81d31f2562d2b19f7dafd"
+    },
+    "EVM on Flow Testnet": {
+        "Contract Address": "0x3A92c403CcfD005C19B4a75E8ee178f3963dB85C",
+        "Link": "https://evm-testnet.flowscan.io/address/0x3A92c403CcfD005C19B4a75E8ee178f3963dB85C"
+    }
+}
