@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
-import { usePrivy, useLogin, useWallets } from '@privy-io/react-auth';
+import { ethers } from 'ethers';
+import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { Button } from './ui/button';
 import { 
   Card, 
@@ -17,16 +18,71 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 import { Wallet, LogOut, Copy, ExternalLink } from 'lucide-react';
+import contractData from '../contracts/ETHVercel.json';
+
+interface NetworkConfig {
+  address: string;
+  chainId: number;
+  name: string;
+  Link: string;
+}
+
+interface ContractState {
+  contract: ethers.Contract | null;
+  provider: any;
+  currentNetwork: NetworkConfig | null;
+}
 
 const Layout = () => {
   const location = useLocation();
   const [loading, setLoading] = useState(false);
-  const [address, setAddress] = useState('');
-  const [isConnected, setConnected] = useState(false);
   const [showWalletInfo, setShowWalletInfo] = useState(false);
+  const [contractState, setContractState] = useState<ContractState>({
+    contract: null,
+    provider: null,
+    currentNetwork: null
+  });
   
-  const { login, logout, authenticated, user } = usePrivy();
+  const { login, logout, authenticated, ready, user } = usePrivy();
   const { wallets } = useWallets();
+
+  // Initialize contract when wallet is connected
+  const initializeContract = async (wallet: any) => {
+    try {
+      const ethProvider = await wallet.getEthersProvider();
+      const signer = await ethProvider.getSigner();
+      const network = await ethProvider.getNetwork();
+      const chainId = String(network.chainId);
+      console.log(chainId);
+      //Find network configuration
+      const networkConfig = Object.values(contractData.networks).find(
+        (net: any) => net.chainId === network.chainId
+      ) as NetworkConfig;
+
+      if (!networkConfig) {
+        console.error('Network not supported');
+        return;
+      }
+      console.log(signer, network, contractData.address);
+      // Create contract instance
+      const contract = new ethers.Contract(
+        contractData.address,
+        contractData.abi,
+        signer
+      );
+
+      console.log(signer, network, contract, contractData.networks);
+
+      setContractState({
+        contract,
+        provider: ethProvider,
+        currentNetwork: networkConfig
+      });
+
+    } catch (error) {
+      console.error('Error initializing contract:', error);
+    }
+  };
 
   // Handle login completion
   const handleLogin = async () => {
@@ -45,8 +101,11 @@ const Layout = () => {
     setLoading(true);
     try {
       await logout();
-      setConnected(false);
-      setAddress('');
+      setContractState({
+        contract: null,
+        provider: null,
+        currentNetwork: null
+      });
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
@@ -56,24 +115,24 @@ const Layout = () => {
 
   // Copy address to clipboard
   const copyAddress = () => {
-    if (address) {
-      navigator.clipboard.writeText(address);
+    if (wallets?.[0]?.address) {
+      navigator.clipboard.writeText(wallets[0].address);
     }
   };
 
-  // Update connection status when auth state changes
+  // Initialize wallet and contract when authenticated
   useEffect(() => {
-    if (authenticated && user) {
-      setConnected(true);
-      const userAddress = user.wallet?.address;
-      if (userAddress) {
-        setAddress(userAddress);
+    const initWallet = async () => {
+      if (authenticated && wallets.length > 0) {
+        const embeddedWallet = wallets[0];
+        await initializeContract(embeddedWallet);
       }
-    } else {
-      setConnected(false);
-      setAddress('');
+    };
+
+    if (ready) {
+      initWallet();
     }
-  }, [authenticated, user]);
+  }, [authenticated, wallets, ready]);
 
   // Format address for display
   const formatAddress = (addr: string) => {
@@ -84,13 +143,25 @@ const Layout = () => {
   // Get active tab from current path
   const activeTab = location.pathname.split('/')[1] || 'home';
 
+  // Get the current wallet address
+  const currentAddress = wallets?.[0]?.address;
+
+  // Don't render until Privy is ready
+  if (!ready) {
+    return (
+      <div className="flex min-h-screen bg-gray-950 text-gray-100 items-center justify-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-yellow-500"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen bg-gray-950 text-gray-100 relative overflow-hidden">
       <Sidebar activeTab={activeTab} />
       <div className="flex-1 p-8">
         <div className="flex justify-between items-center mb-8">
           <div className="flex gap-4">
-            {!isConnected ? (
+            {!authenticated ? (
               <Button 
                 className="bg-blue-500 hover:bg-blue-600 rounded flex items-center gap-2" 
                 onClick={handleLogin}
@@ -103,7 +174,7 @@ const Layout = () => {
                 <DropdownMenuTrigger asChild>
                   <Button className="bg-green-600 hover:bg-green-700 rounded flex items-center gap-2">
                     <Wallet className="w-4 h-4" />
-                    {formatAddress(address)}
+                    {formatAddress(currentAddress || '')}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56 bg-gray-800 border-gray-700">
@@ -146,14 +217,14 @@ const Layout = () => {
                 <div className="space-y-4">
                   <div>
                     <p className="text-sm font-medium text-gray-400">Address</p>
-                    <p className="text-sm font-mono">{address}</p>
+                    <p className="text-sm font-mono">{currentAddress}</p>
                   </div>
-                  {wallets.map((wallet) => (
-                    <div key={wallet.address} className="space-y-2">
-                      <p className="text-sm font-medium text-gray-400">Chain</p>
-                      <p className="text-sm">{wallet.chainName}</p>
+                  {contractState.currentNetwork && (
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-gray-400">Network</p>
+                      <p className="text-sm">{contractState.currentNetwork.name}</p>
                     </div>
-                  ))}
+                  )}
                   <Button 
                     className="w-full mt-4" 
                     onClick={() => setShowWalletInfo(false)}
@@ -166,7 +237,13 @@ const Layout = () => {
           </div>
         )}
 
-        <Outlet />
+        <Outlet context={{ 
+          contract: contractState.contract,
+          provider: contractState.provider,
+          currentNetwork: contractState.currentNetwork,
+          isConnected: authenticated,
+          address: currentAddress
+        }} />
 
         {loading && (
           <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center">

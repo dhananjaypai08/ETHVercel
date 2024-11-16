@@ -1,0 +1,47 @@
+specVersion: 1.0.0
+indexerHints:
+  prune: auto
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: ETHVercel
+    network: polygon-zkevm-cardona
+    source:
+      address: "0x5894f81c558f1a302ce81d31f2562d2b19f7dafd"
+      abi: ETHVercel
+      startBlock: 8339405
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Approval
+        - ApprovalForAll
+        - DeploymentMap
+        - Mint
+        - OwnershipTransferred
+        - PerformUpkeep
+        - Transfer
+        - UpkeepCheck
+      abis:
+        - name: ETHVercel
+          file: ./abis/ETHVercel.json
+      eventHandlers:
+        - event: Approval(indexed address,indexed address,indexed uint256)
+          handler: handleApproval
+        - event: ApprovalForAll(indexed address,indexed address,bool)
+          handler: handleApprovalForAll
+        - event: DeploymentMap(address,(string,string,string,address))
+          handler: handleDeploymentMap
+        - event: Mint(address,string)
+          handler: handleMint
+        - event: OwnershipTransferred(indexed address,indexed address)
+          handler: handleOwnershipTransferred
+        - event: PerformUpkeep(uint256,uint256)
+          handler: handlePerformUpkeep
+        - event: Transfer(indexed address,indexed address,indexed uint256)
+          handler: handleTransfer
+        - event: UpkeepCheck(uint256)
+          handler: handleUpkeepCheck
+      file: ./src/eth-vercel.ts

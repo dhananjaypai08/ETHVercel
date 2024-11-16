@@ -1,32 +1,4 @@
-{
-    "address": "0x5894f81c558f1a302ce81d31f2562d2b19f7dafd",
-    "networks": {
-        "48899": {
-            "address" : "0x3A92c403CcfD005C19B4a75E8ee178f3963dB85C",
-            "Link": "https://explorer.testnet.zircuit.com/address/0x3A92c403CcfD005C19B4a75E8ee178f3963dB85C",
-            "chainId": 48899,
-            "Name": "Zircuit Testnet"
-        },
-        "534351": {
-            "address": "0x6e8c29600df7db8e229cbd95283d0bd9e52c0809",
-            "Link": "https://sepolia.scrollscan.com/are code ddress/0x6e8c29600df7db8e229cbd95283d0bd9e52c0809",
-            "chainId": 534351,
-            "name": "Scroll Sepolia"
-        }, 
-        "2442": {
-            "address": "0x5894f81c558f1a302ce81d31f2562d2b19f7dafd",
-            "Link": "https://cardona-zkevm.polygonscan.com/address/0x5894f81c558f1a302ce81d31f2562d2b19f7dafd",
-            "chainId": 2442,
-            "name": "Polygon ZKEVM"
-        },
-        "545": {
-            "address": "0x3A92c403CcfD005C19B4a75E8ee178f3963dB85C",
-            "Link": "https://evm-testnet.flowscan.io/address/0x3A92c403CcfD005C19B4a75E8ee178f3963dB85C",
-            "chainId": 545 ,
-            "name": "EVM on Flow Testnet"
-        }
-    },
-    "abi": [
+[
         {
             "inputs": [],
             "stateMutability": "nonpayable",
@@ -795,4 +767,3 @@
             "type": "function"
         }
     ]
-}

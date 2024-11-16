@@ -7,12 +7,31 @@ import { Plus, X, Check, Loader2, Github, Globe, Terminal } from 'lucide-react';
 import axios from 'axios';
 import { create } from "@web3-storage/w3up-client";
 import { filesFromPaths } from 'files-from-path';
-import {Name} from "w3name"
+import { ethers } from 'ethers';
+import { useOutletContext } from 'react-router-dom';
+
 const BACKEND_URL = 'http://localhost:8000';
+
+interface ContractContext {
+  contract: ethers.Contract | null;
+  provider: any;
+  currentNetwork: {
+    address: string;
+    chainId: number;
+    name: string;
+    Link: string;
+  } | null;
+  isConnected: boolean;
+  address: string;
+}
 
 const Deploy = () => {
   const [githubUrl, setGithubUrl] = useState('');
+  const [txnHash, setTxnHash] = useState();
   const [envVariables, setEnvVariables] = useState([{ key: '', value: '' }]);
+
+  const { contract, isConnected, address } = useOutletContext<ContractContext>();
+
   const [deploymentStatus, setDeploymentStatus] = useState({
     isDeploying: false,
     currentStep: '',
@@ -26,8 +45,41 @@ const Deploy = () => {
     'Setting up environment',
     'Installing dependencies',
     'Building project',
-    'Deploying to IPFS'
+    'Deploying to Storacha',
+    'Minting Proof of Deployment SBT'
   ];
+
+  const mintDeploymentToken = async (
+    ipfsUrl: string,
+    ipfsCid: string,
+    tokenUri: string
+  ) => {
+    if (!contract || !isConnected) {
+      throw new Error('Wallet not connected or contract not initialized');
+    }
+
+    try {
+      const tx = await contract.safeMint(
+        githubUrl,
+        JSON.stringify({
+          ipfsUrl,
+          ipfsCid,
+          deployedAt: new Date().toISOString()
+        }),
+        tokenUri,
+        address
+      );
+
+      const receipt = await tx.wait();
+      console.log('Token minted successfully');
+      console.log(tx);
+      console.log(`https://explorer-ui.cardona.zkevm-rpc.com/tx/${receipt.hash}`);
+      setTxnHash(`https://explorer-ui.cardona.zkevm-rpc.com/tx/${receipt.hash}`);
+    } catch (error) {
+      console.error('Error minting token:', error);
+      throw error;
+    }
+  };
 
   const uploadToIPFS = async (buildPath) => {
     try {
@@ -59,18 +111,18 @@ const Deploy = () => {
     console.log('File uploaded with CID:', cid);
 
     // Create IPNS record
-    console.log('Creating IPNS record...');
-    const name = await Name.create();
-    console.log('created new name: ', name.toString());
+    // console.log('Creating IPNS record...');
+    // const name = await Name.create();
+    // console.log('created new name: ', name.toString());
       // const name = await client.name.publish(cid);
       // console.log('Published to IPNS:', name);
-    const revision = await Name.v0(name, `https://${cid}.ipfs.w3s.link/index.html`);
+    // const revision = await Name.v0(name, `https://${cid}.ipfs.w3s.link/index.html`);
 
     return {
       ipfsUrl: `https://${cid}.ipfs.w3s.link/index.html`,
-      ipnsUrl: `https://${name}.ipns.w3s.link`,
+      // ipnsUrl: `https://${name}.ipns.w3s.link`,
       ipfsCid: cid,
-      ipnsName: name
+      // ipnsName: name
     };
   } catch (error) {
     console.error('IPFS upload error:', error);
@@ -167,28 +219,69 @@ const Deploy = () => {
       updateDeploymentStep('Building project', true);
   
       // Step 5: Deploy to IPFS
-      updateDeploymentStep('Deploying to IPFS');
+      updateDeploymentStep('Deploying to Storacha');
       const buildPath = buildResponse.data.buildPath;
       
-      const { ipfsUrl, ipnsUrl, ipfsCid, ipnsName } = await uploadToIPFS(buildPath);
-  
+      const { ipfsUrl, ipfsCid, ipnsName } = await uploadToIPFS(buildPath);
+      updateDeploymentStep('Deploying to Storacha', true);
+      console.log(address, contract, isConnected);
       // Store deployment info
-      await axios.post(`${BACKEND_URL}/api/store_deployment`, {
-        github_url: githubUrl,
-        ipfs_cid: ipfsCid,
-        ipns_name: ipnsName
-      });
+      // await axios.post(`${BACKEND_URL}/api/store_deployment`, {
+      //   github_url: githubUrl,
+      //   ipfs_cid: ipfsCid,
+      //   ipns_name: ipnsName
+      // });
+
+      updateDeploymentStep('Minting Proof of Deployment SBT');
+      
+      // Prepare metadata for the token
+      const metadata = {
+        name: `Deployment: ${githubUrl.split('/').pop()}`,
+        description: 'Proof of Deployment SBT',
+        external_url: ipfsUrl,
+        attributes: [
+          {
+            trait_type: 'Repository',
+            value: githubUrl
+          },
+          {
+            trait_type: 'Deployment Type',
+            value: 'IPFS'
+          },
+          {
+            trait_type: 'IPFS CID',
+            value: ipfsCid
+          }
+        ]
+      };
+
+      // Upload metadata to IPFS
+      const metadataBlob = new Blob(
+        [JSON.stringify(metadata)],
+        { type: 'application/json' }
+      );
+      const metadataFile = new File([metadataBlob], 'metadata.json');
+      const client = await create();
+      // Upload metadata to IPFS
+      const metadataCid = await client.uploadFile(metadataFile);
+      const tokenUri = `https://${metadataCid}.ipfs.w3s.link/metadata.json`;
   
-      setDeploymentStatus(prev => ({
-        ...prev,
-        completedSteps: [...prev.completedSteps, 'Deploying to IPFS'],
-        currentStep: '',
-        isDeploying: false,
-        deployedUrls: {
-          ipfs: ipfsUrl,
-          ipns: ipnsUrl
-        }
-      }));
+
+      // Mint the SBT
+      await mintDeploymentToken(ipfsUrl, ipfsCid, tokenUri);
+
+      // setDeploymentStatus(prev => ({
+      //   ...prev,
+      //   completedSteps: [...prev.completedSteps, 'Minting Proof of Deployment SBT'],
+      //   currentStep: '',
+      //   isDeploying: false,
+      //   deployedUrls: {
+      //     ipfs: ipfsUrl,
+      //     tokenUri
+      //   }
+      // }));
+      updateDeploymentStep('Minting Proof of Deployment SBT', true);
+  
   
     } catch (error) {
       console.error('Deployment error:', error);
@@ -373,6 +466,19 @@ const Deploy = () => {
                     </a>
                   </div>
                 </div>
+
+                <div className="flex items-center justify-between">
+      <span className="text-gray-300">Transaction:</span>
+      <a
+        href={txnHash}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center text-teal-400 hover:text-teal-300"
+      >
+        <Globe className="h-4 w-4 mr-1" />
+        View on Explorer
+      </a>
+    </div>
 
                 {/* IPNS URL */}
                 <div className="p-4 bg-gray-700/30 rounded-lg border border-gray-600">

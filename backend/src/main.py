@@ -1,12 +1,8 @@
-# fastapi imports 
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.responses import RedirectResponse
-import uvicorn 
-#pydantic imports
+from starlette.responses import RedirectResponse, FileResponse
 from pydantic import BaseModel
-
-# other imports
+import uvicorn
 import os
 import logging
 import requests
@@ -14,11 +10,12 @@ from dotenv import load_dotenv
 from typing import List, Dict
 from pathlib import Path
 import asyncio
-import os
 import git
 import shutil
 import subprocess
 import aiofiles
+import time
+import zipfile
 
 load_dotenv()
 app = FastAPI()
@@ -26,28 +23,27 @@ app = FastAPI()
 origins = ["http://localhost:3000", "*", "http://localhost:5173"]
 
 app.add_middleware(
-        CORSMiddleware,
-        allow_origins=origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"]
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
 )
 
-# Environment Variables Model
+# Models
+class CloneRequest(BaseModel):
+    github_url: str
+
 class EnvVariable(BaseModel):
     key: str
     value: str
 
-# Deployment Request Model
 class DeploymentRequest(BaseModel):
     github_url: str
     env_variables: List[EnvVariable]
-    
-BASE_DIR = Path("../../deployments")
 
-@app.get("/health_check")
-async def health_check():
-    return {"Running, CPU Count": os.cpu_count()}
+BASE_DIR = Path("../../deployments")
+BASE_DIR.mkdir(parents=True, exist_ok=True)
 
 def get_project_dir(github_url: str):
     repo_parts = github_url.strip("/").split("/")
@@ -55,15 +51,9 @@ def get_project_dir(github_url: str):
     repo_name = repo_parts[-1]
     project_name = f"{username}-{repo_name}"
     project_dir = BASE_DIR / project_name
-    # if project_dir.exists():
-    #     shutil.rmtree(project_dir)
-    # project_dir.mkdir(parents=True)
-    
     return project_dir
-        
-        
+
 async def run_command(cmd: List[str], cwd: Path) -> bool:
-    """Run a shell command asynchronously"""
     try:
         process = await asyncio.create_subprocess_exec(
             *cmd,
@@ -82,55 +72,148 @@ async def run_command(cmd: List[str], cwd: Path) -> bool:
         print(f"Error running command {' '.join(cmd)}: {str(e)}")
         return False
 
-@app.post("/api/clone")
-async def clone_rep(github_url: str):
-    project_dir = get_project_dir(github_url)
-    if project_dir.exists():
-        return True
-        #shutil.rmtree(project_dir)
-    project_dir.mkdir(parents=True)
-    
+@app.get("/api/get_build_files")
+async def get_build_files(build_path: str):
     try:
-        git.Repo.clone_from(github_url, project_dir)
-        print("repo cloned")
+        build_dir = Path(build_path)
+        if not build_dir.exists():
+            raise HTTPException(status_code=404, detail=f"Build directory not found at {build_path}")
+
+        # Create a temporary directory for the zip file
+        with tempfile.TemporaryDirectory() as temp_dir:
+            zip_path = Path(temp_dir) / "build.zip"
+            
+            # Create zip file containing build directory contents
+            with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                for root, _, files in os.walk(build_dir):
+                    root_path = Path(root)
+                    for file in files:
+                        file_path = root_path / file
+                        arcname = file_path.relative_to(build_dir)
+                        zipf.write(file_path, arcname)
+
+            # Check if zip was created successfully
+            if not zip_path.exists():
+                raise HTTPException(status_code=500, detail="Failed to create zip file")
+
+            return FileResponse(
+                path=str(zip_path),
+                media_type='application/zip',
+                filename='build.zip'
+            )
+
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to clone repository: {str(e)}")
-    return True
+        print(f"Error in get_build_files: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/clone")
+async def clone_rep(request: CloneRequest):
+    try:
+        project_dir = get_project_dir(request.github_url)
+        print(f"Project directory: {project_dir}")
+        print(project_dir)
+        if project_dir.exists():
+            print("Project directory exists, returning success")
+            return {"success": True, "message": "Repository already exists"}
+        
+        project_dir.mkdir(parents=True, exist_ok=True)
+        
+        git.Repo.clone_from(request.github_url, project_dir)
+        print("Repository cloned successfully")
+        return {"success": True, "message": "Repository cloned successfully"}
+    except Exception as e:
+        error_msg = f"Failed to clone repository: {str(e)}"
+        print(error_msg)
+        raise HTTPException(status_code=400, detail=error_msg)
 
 @app.post("/api/create_env")
 async def create_env(request: DeploymentRequest):
-    # Create .env file
-    project_dir = get_project_dir(request.github_url)
-    
-    env_content = "\n".join([f"{var.key}={var.value}" for var in request.env_variables])
-    # print(env_content)
-    print(project_dir, env_content)
-    env_file = project_dir /"zkcdn" / ".env"
-    print(env_file)
-    with open(env_file, "w") as f:
-        f.write(env_content)
-    print(".env created")
-    return True
+    try:
+        project_dir = get_project_dir(request.github_url)
+        if not project_dir.exists():
+            raise HTTPException(status_code=404, detail="Project directory not found")
+        
+        env_content = "\n".join([f"{var.key}={var.value}" for var in request.env_variables])
+        env_file = project_dir / ".env"
+        
+        # Ensure parent directory exists
+        env_file.parent.mkdir(parents=True, exist_ok=True)
+        
+        with open(env_file, "w") as f:
+            f.write(env_content)
+        
+        return {"success": True, "message": "Environment variables created"}
+    except Exception as e:
+        error_msg = f"Failed to create environment variables: {str(e)}"
+        print(error_msg)
+        raise HTTPException(status_code=500, detail=error_msg)
 
 @app.post("/api/dependency_install")
-async def install_dependency(github_url: str):
-    project_dir = get_project_dir(github_url)
-    
-    # Install dependencies
-    result = await run_command(["npm", "install"], project_dir/"zkcdn")
-    if not result:
-        raise HTTPException(status_code=500, detail="Failed to install dependencies")
-    print("npm installed")
-    return True
+async def install_dependency(request: CloneRequest):
+    try:
+        project_dir = get_project_dir(request.github_url)
+        if project_dir.exists():
+            print("Project directory exists, returning success")
+            return {"success": True, "message": "Repository already exists"}
+        
+        working_dir = project_dir / "zkcdn"
+        if not working_dir.exists():
+            raise HTTPException(status_code=404, detail="Project subdirectory not found")
+        
+        result = await run_command(["npm", "install"], working_dir)
+        if not result:
+            raise HTTPException(status_code=500, detail="Failed to install dependencies")
+        
+        return {"success": True, "message": "Dependencies installed"}
+    except Exception as e:
+        error_msg = f"Failed to install dependencies: {str(e)}"
+        print(error_msg)
+        raise HTTPException(status_code=500, detail=error_msg)
 
 @app.post("/api/build")
-async def build_project(github_url: str):
-    project_dir = get_project_dir(github_url)
-    # Build project
-    if not await run_command(["npm", "run", "build"], project_dir/"zkcdn"):
-        raise HTTPException(status_code=500, detail="Failed to build project")
-    print(f"npm run build done {project_dir}")
-    return True, project_dir
+async def build_project(request: CloneRequest):
+    try:
+        project_dir = get_project_dir(request.github_url)
+        
+        if project_dir.exists():
+            print("Project directory exists, returning success")
+            return {"success": True, "message": "Repository already exists"}
+        
+        # Try to find the build directory
+        build_dir = None
+        possible_build_dirs = ['build', 'dist', 'out']
+        
+        for build_name in possible_build_dirs:
+            temp_dir = project_dir / build_name
+            if temp_dir.exists():
+                build_dir = temp_dir
+                break
+        
+        if build_dir is None:
+            # Run build command
+            if not await run_command(["npm", "run", "build"], project_dir):
+                raise HTTPException(status_code=500, detail="Failed to build project")
+            
+            # Check again for build directory
+            for build_name in possible_build_dirs:
+                temp_dir = project_dir / build_name
+                if temp_dir.exists():
+                    build_dir = temp_dir
+                    break
+            
+            if build_dir is None:
+                raise HTTPException(status_code=404, detail="Build directory not found after build")
+        
+        return {
+            "success": True,
+            "message": "Project built successfully",
+            "buildPath": str(build_dir)
+        }
+        
+    except Exception as e:
+        error_msg = f"Failed to build project: {str(e)}"
+        print(error_msg)
+        raise HTTPException(status_code=500, detail=error_msg)
 
 # Deployment status endpoint
 @app.get("/api/deployment/{project_name}/status")
@@ -138,7 +221,7 @@ async def deployment_status(project_name: str):
     project_dir = BASE_DIR / project_name
     return {
         "exists": project_dir.exists(),
-        "has_node_modules": (project_dir/"zkcdn" / "node_modules").exists() if project_dir.exists() else False,
+        "has_node_modules": (project_dir/ "node_modules").exists() if project_dir.exists() else False,
         "has_build": any((project_dir / d).exists() for d in ["dist", "build"]) if project_dir.exists() else False
     }
 
