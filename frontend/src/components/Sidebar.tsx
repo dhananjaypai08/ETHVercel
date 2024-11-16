@@ -10,6 +10,7 @@ function Sidebar({ activeTab }) {
   const tabs = [
     { id: 'home', name: 'Home', icon: Home, path: '/' },
     { id: 'deploy', name: 'Deploy Project', icon: UploadCloudIcon, path: '/deploy' },
+    { id: 'deployments', name: 'View Deployments', icon: UploadCloudIcon, path: '/deployments' },
     { id: 'dashboard', name: 'Analytics Dashboard', icon: UploadCloudIcon, path: '/dashboard' },
   ];
 

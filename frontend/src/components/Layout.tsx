@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
-import Sidebar from '../components/Sidebar';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { ethers } from 'ethers';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
+import Sidebar from './Sidebar';
 import { Button } from './ui/button';
 import { 
   Card, 
@@ -17,80 +17,98 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
-import { Wallet, LogOut, Copy, ExternalLink } from 'lucide-react';
+import { 
+  Wallet, 
+  LogOut, 
+  Copy, 
+  ExternalLink,
+  Loader2
+} from 'lucide-react';
 import contractData from '../contracts/ETHVercel.json';
 
-interface NetworkConfig {
-  address: string;
-  chainId: number;
-  name: string;
-  Link: string;
-}
-
-interface ContractState {
+// Contract Context Interface
+interface ContractContext {
   contract: ethers.Contract | null;
   provider: any;
-  currentNetwork: NetworkConfig | null;
+  currentNetwork: {
+    address: string;
+    chainId: number;
+    name: string;
+    Link: string;
+  } | null;
+  isConnected: boolean;
+  address: string | null;
 }
 
-const Layout = () => {
+const Layout: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { login, logout, authenticated, user, ready } = usePrivy();
+  const { wallets } = useWallets();
+  
+  // Contract and wallet states
+  const [contract, setContract] = useState<ethers.Contract | null>(null);
+  const [provider, setProvider] = useState<any>(null);
+  const [currentNetwork, setCurrentNetwork] = useState<ContractContext['currentNetwork']>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const [address, setAddress] = useState<string | null>(null);
+  
+  // UI states
   const [loading, setLoading] = useState(false);
   const [showWalletInfo, setShowWalletInfo] = useState(false);
-  const [contractState, setContractState] = useState<ContractState>({
-    contract: null,
-    provider: null,
-    currentNetwork: null
-  });
-  
-  const { login, logout, authenticated, ready, user } = usePrivy();
-  const { wallets } = useWallets();
+  const [error, setError] = useState<string | null>(null);
 
-  // Initialize contract when wallet is connected
-  const initializeContract = async (wallet: any) => {
+  // Initialize contract connection
+  const initializeContract = async () => {
+    if (!authenticated || !wallets.length) return;
+
     try {
-      const ethProvider = await wallet.getEthersProvider();
-      const signer = await ethProvider.getSigner();
-      const network = await ethProvider.getNetwork();
-      const chainId = String(network.chainId);
-      console.log(chainId);
-      //Find network configuration
-      const networkConfig = Object.values(contractData.networks).find(
-        (net: any) => net.chainId === network.chainId
-      ) as NetworkConfig;
-
-      if (!networkConfig) {
-        console.error('Network not supported');
-        return;
+      setLoading(true);
+      // Get the first wallet (main wallet)
+      const wallet = wallets[0];
+      
+      // Get the provider
+      const provider = await wallet.getEthersProvider();
+      const network = await provider.getNetwork();
+      
+      const networkData = contractData.networks[network.chainId];
+      if (!networkData) {
+        throw new Error('Contract not deployed on this network');
       }
-      console.log(signer, network, contractData.address);
-      // Create contract instance
+
+      // Get signer from the provider
+      const signer = await provider.getSigner();
+
       const contract = new ethers.Contract(
-        contractData.address,
+        networkData.address,
         contractData.abi,
-        signer
+        signer // Use signer instead of provider to allow write operations
       );
 
-      console.log(signer, network, contract, contractData.networks);
-
-      setContractState({
-        contract,
-        provider: ethProvider,
-        currentNetwork: networkConfig
-      });
-
-    } catch (error) {
-      console.error('Error initializing contract:', error);
+      setContract(contract);
+      setProvider(provider);
+      setCurrentNetwork(networkData);
+      setIsConnected(true);
+      setAddress(wallet.address);
+      setError(null);
+    } catch (err: any) {
+      console.error('Contract initialization error:', err);
+      setError(err.message);
+      setIsConnected(false);
+      setContract(null);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Handle login completion
+  // Handle login
   const handleLogin = async () => {
-    setLoading(true);
     try {
+      setLoading(true);
       await login();
-    } catch (error) {
-      console.error('Login error:', error);
+    } catch (err: any) {
+      console.error('Login error:', err);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -98,16 +116,17 @@ const Layout = () => {
 
   // Handle logout
   const handleLogout = async () => {
-    setLoading(true);
     try {
+      setLoading(true);
       await logout();
-      setContractState({
-        contract: null,
-        provider: null,
-        currentNetwork: null
-      });
-    } catch (error) {
-      console.error('Logout error:', error);
+      setIsConnected(false);
+      setAddress(null);
+      setContract(null);
+      setProvider(null);
+      setCurrentNetwork(null);
+    } catch (err: any) {
+      console.error('Logout error:', err);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -115,24 +134,10 @@ const Layout = () => {
 
   // Copy address to clipboard
   const copyAddress = () => {
-    if (wallets?.[0]?.address) {
-      navigator.clipboard.writeText(wallets[0].address);
+    if (address) {
+      navigator.clipboard.writeText(address);
     }
   };
-
-  // Initialize wallet and contract when authenticated
-  useEffect(() => {
-    const initWallet = async () => {
-      if (authenticated && wallets.length > 0) {
-        const embeddedWallet = wallets[0];
-        await initializeContract(embeddedWallet);
-      }
-    };
-
-    if (ready) {
-      initWallet();
-    }
-  }, [authenticated, wallets, ready]);
 
   // Format address for display
   const formatAddress = (addr: string) => {
@@ -140,20 +145,24 @@ const Layout = () => {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
   };
 
+  // Initialize contract when authenticated and wallets are available
+  useEffect(() => {
+    if (authenticated && wallets.length > 0) {
+      initializeContract();
+    }
+  }, [authenticated, wallets]);
+
   // Get active tab from current path
   const activeTab = location.pathname.split('/')[1] || 'home';
 
-  // Get the current wallet address
-  const currentAddress = wallets?.[0]?.address;
-
-  // Don't render until Privy is ready
-  if (!ready) {
-    return (
-      <div className="flex min-h-screen bg-gray-950 text-gray-100 items-center justify-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-yellow-500"></div>
-      </div>
-    );
-  }
+  // Context value for child components
+  const contextValue: ContractContext = {
+    contract,
+    provider,
+    currentNetwork,
+    isConnected,
+    address
+  };
 
   return (
     <div className="flex min-h-screen bg-gray-950 text-gray-100 relative overflow-hidden">
@@ -161,12 +170,17 @@ const Layout = () => {
       <div className="flex-1 p-8">
         <div className="flex justify-between items-center mb-8">
           <div className="flex gap-4">
-            {!authenticated ? (
+            {!isConnected ? (
               <Button 
                 className="bg-blue-500 hover:bg-blue-600 rounded flex items-center gap-2" 
                 onClick={handleLogin}
+                disabled={loading || !ready}
               >
-                <Wallet className="w-4 h-4" />
+                {loading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Wallet className="w-4 h-4" />
+                )}
                 Connect Wallet
               </Button>
             ) : (
@@ -174,7 +188,7 @@ const Layout = () => {
                 <DropdownMenuTrigger asChild>
                   <Button className="bg-green-600 hover:bg-green-700 rounded flex items-center gap-2">
                     <Wallet className="w-4 h-4" />
-                    {formatAddress(currentAddress || '')}
+                    {formatAddress(address || '')}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56 bg-gray-800 border-gray-700">
@@ -203,11 +217,26 @@ const Layout = () => {
               </DropdownMenu>
             )}
           </div>
+
+          {/* Network Display */}
+          {currentNetwork && (
+            <div className="flex items-center gap-2 text-sm text-gray-400">
+              <div className="w-2 h-2 rounded-full bg-green-500"></div>
+              {currentNetwork.name}
+            </div>
+          )}
         </div>
+
+        {/* Error Display */}
+        {error && (
+          <div className="mb-4 p-4 bg-red-900/20 border border-red-700 rounded-lg">
+            <p className="text-red-400 text-sm">{error}</p>
+          </div>
+        )}
 
         {/* Wallet Info Modal */}
         {showWalletInfo && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <Card className="w-96 bg-gray-800 border-gray-700">
               <CardHeader>
                 <CardTitle>Wallet Information</CardTitle>
@@ -215,14 +244,19 @@ const Layout = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div>
-                    <p className="text-sm font-medium text-gray-400">Address</p>
-                    <p className="text-sm font-mono">{currentAddress}</p>
-                  </div>
-                  {contractState.currentNetwork && (
-                    <div className="space-y-2">
+                  {address && (
+                    <div>
+                      <p className="text-sm font-medium text-gray-400">Address</p>
+                      <p className="text-sm font-mono text-gray-200">{address}</p>
+                    </div>
+                  )}
+                  {currentNetwork && (
+                    <div>
                       <p className="text-sm font-medium text-gray-400">Network</p>
-                      <p className="text-sm">{contractState.currentNetwork.name}</p>
+                      <p className="text-sm text-gray-200">{currentNetwork.name}</p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Chain ID: {currentNetwork.chainId}
+                      </p>
                     </div>
                   )}
                   <Button 
@@ -237,22 +271,18 @@ const Layout = () => {
           </div>
         )}
 
-        <Outlet context={{ 
-          contract: contractState.contract,
-          provider: contractState.provider,
-          currentNetwork: contractState.currentNetwork,
-          isConnected: authenticated,
-          address: currentAddress
-        }} />
+        {/* Main Content with Context Provider */}
+        <Outlet context={contextValue} />
 
+        {/* Loading Overlay */}
         {loading && (
-          <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center">
-            <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-yellow-500"></div>
+          <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+            <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500"></div>
           </div>
         )}
       </div>
     </div>
   );
-}
+};
 
 export default Layout;
