@@ -4,3 +4,6 @@ circuits/circom/
 .env
 circuits/node_modules/
 circuits/package-lock.json
+circuits/build/
+circuits/PrivateDeployment_cpp
+circuits/PrivateDeployment_js
