@@ -1,0 +1,11 @@
+{
+  "name": "zk-deployment-circuits",
+  "version": "1.0.0",
+  "description": "ZK circuits for private deployments",
+  "dependencies": {
+    "snarkjs": "^0.7.0"
+  },
+  "devDependencies": {
+    "circomlib": "^2.0.5"
+  }
+}

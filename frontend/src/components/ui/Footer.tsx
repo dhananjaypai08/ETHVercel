@@ -6,10 +6,10 @@ const Footer=() => {
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-2">
               <Code className="w-6 h-6 text-purple-500" />
-              <span className="font-semibold">DeployChain</span>
+              <span className="font-semibold">ETHVercel</span>
             </div>
             <div className="text-gray-400 text-sm">
-              © 2024 DeployChain. All rights reserved.
+              © 2024 ETHVercel. All rights reserved.
             </div>
           </div>
         </div>

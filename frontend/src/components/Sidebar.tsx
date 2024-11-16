@@ -1,17 +1,17 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Home, UploadCloudIcon } from 'lucide-react';
+import { Home, UploadCloudIcon, ViewIcon, GitGraphIcon, HomeIcon } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 
 function Sidebar({ activeTab }) {
   const navigate = useNavigate();
   
   const tabs = [
-    { id: 'home', name: 'Home', icon: Home, path: '/' },
+    { id: 'home', name: 'Home', icon: HomeIcon, path: '/' },
     { id: 'deploy', name: 'Deploy Project', icon: UploadCloudIcon, path: '/deploy' },
-    { id: 'deployments', name: 'View Deployments', icon: UploadCloudIcon, path: '/deployments' },
-    { id: 'dashboard', name: 'Analytics Dashboard', icon: UploadCloudIcon, path: '/dashboard' },
+    { id: 'deployments', name: 'View Deployments', icon: ViewIcon, path: '/deployments' },
+    { id: 'dashboard', name: 'Analytics Dashboard', icon: GitGraphIcon, path: '/dashboard' },
   ];
 
   const handleTabClick = (path) => {
@@ -29,7 +29,7 @@ function Sidebar({ activeTab }) {
           onClick={() => navigate('/')}
           style={{ cursor: 'pointer' }}
         >
-          ZKVercel
+          ETHVercel
         </motion.div>
       </CardHeader>
       <CardContent>

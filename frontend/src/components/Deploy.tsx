@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,30 +7,20 @@ import { Plus, X, Check, Loader2, Github, Globe, Terminal } from 'lucide-react';
 import axios from 'axios';
 import { create } from "@web3-storage/w3up-client";
 import { ethers } from 'ethers';
-import { useOutletContext } from 'react-router-dom';
-
+import { usePrivy, useWallets } from '@privy-io/react-auth';
+import contractData from "../contracts/ETHVercel.json";
 
 const BACKEND_URL = 'http://localhost:8000';
 
-interface ContractContext {
-  contract: ethers.Contract | null;
-  provider: any;
-  currentNetwork: {
-    address: string;
-    chainId: number;
-    name: string;
-    Link: string;
-  } | null;
-  isConnected: boolean;
-  address: string;
-}
-
 const Deploy = () => {
+  const { user, ready } = usePrivy();
+  const { wallets } = useWallets();
+  const [provider, setProvider] = useState(null);
+  const [contract, setContract] = useState(null);
+  const [address, setAddress] = useState('');
   const [githubUrl, setGithubUrl] = useState('');
   const [txnHash, setTxnHash] = useState();
   const [envVariables, setEnvVariables] = useState([{ key: '', value: '' }]);
-
-  const { contract, isConnected, address } = useOutletContext<ContractContext>();
 
   const [deploymentStatus, setDeploymentStatus] = useState({
     isDeploying: false,
@@ -40,6 +30,41 @@ const Deploy = () => {
     deployedUrls: null,
     showLinks: false
   });
+
+  // Initialize contract
+  useEffect(() => {
+    const initContract = async () => {
+      if (wallets && wallets.length > 0) {
+        try {
+          const primaryWallet = wallets[0];
+          setAddress(primaryWallet.address);
+          const ethersProvider = await primaryWallet.getEthersProvider();
+          setProvider(ethersProvider);
+          
+          const signer = await ethersProvider.getSigner();
+          const networkId = '534351'; // Scroll Sepolia testnet
+          
+          const newContract = new ethers.Contract(
+            contractData.networks[networkId].address,
+            contractData.abi,
+            signer
+          );
+          
+          setContract(newContract);
+        } catch (error) {
+          console.error("Error initializing contract:", error);
+          setDeploymentStatus(prev => ({
+            ...prev,
+            error: "Failed to initialize contract connection"
+          }));
+        }
+      }
+    };
+
+    if (ready && wallets.length > 0) {
+      initContract();
+    }
+  }, [ready, wallets]);
   
   const deploySteps = [
     'Cloning repository',
@@ -50,24 +75,16 @@ const Deploy = () => {
     'Minting Proof of Deployment SBT'
   ];
 
-  const checkProvider = () => {
-    if (!contract || !contract.provider) {
-      throw new Error('No provider available. Please check your wallet connection.');
-    }
-    return contract.provider;
-  };
-
   const mintDeploymentToken = async (
     ipfsUrl: string,
     ipfsCid: string,
     tokenUri: string
   ) => {
-    if (!contract || !isConnected) {
+    if (!contract || !address) {
       throw new Error('Wallet not connected or contract not initialized');
     }
   
     try {
-      // Create transaction
       const tx = await contract.safeMint(
         githubUrl,
         JSON.stringify({
@@ -79,18 +96,16 @@ const Deploy = () => {
         address
       );
       
-      console.log(tx.hash);
-      // Set the transaction hash immediately
-      const explorerUrl = `https://explorer-ui.cardona.zkevm-rpc.com/tx/${tx.hash}`;
+      console.log('Transaction hash:', tx.hash);
+      const explorerUrl = `https://sepolia.scrollscan.com/tx/${tx.hash}`;
       setTxnHash(explorerUrl);
   
-      // Update the deployment status to show completion
       setDeploymentStatus(prev => ({
         ...prev,
         isDeploying: false,
         showLinks: true,
-        currentStep: '', // Clear the current step
-        completedSteps: [...prev.completedSteps, 'Minting Proof of Deployment SBT'], // Add the final step to completed
+        currentStep: '',
+        completedSteps: [...prev.completedSteps, 'Minting Proof of Deployment SBT'],
         deployedUrls: {
           ...prev.deployedUrls,
           explorerUrl
@@ -103,7 +118,7 @@ const Deploy = () => {
         ...prev,
         error: error.message || 'Failed to mint token',
         isDeploying: false,
-        currentStep: ''  // Clear the current step on error too
+        currentStep: ''
       }));
       throw error;
     }
@@ -192,6 +207,14 @@ const Deploy = () => {
   };
 
   const handleDeploy = async () => {
+    if (!contract || !address) {
+      setDeploymentStatus(prev => ({
+        ...prev,
+        error: "Please connect your wallet first"
+      }));
+      return;
+    }
+
     setDeploymentStatus({
       isDeploying: true,
       currentStep: deploySteps[0],
@@ -200,7 +223,7 @@ const Deploy = () => {
       deployedUrls: null,
       showLinks: false
     });
-  
+
     try {
       // Step 1: Clone Repository
       updateDeploymentStep('Cloning repository');
@@ -405,23 +428,25 @@ const Deploy = () => {
             </div>
 
             {/* Deploy Button */}
-            <Button
-              className="bg-teal-500 hover:bg-teal-600 mt-6 rounded w-full"
-              // disabled={!isValidGithubUrl(githubUrl) || deploymentStatus.isDeploying}
-              onClick={handleDeploy}
-            >
-              {deploymentStatus.isDeploying ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Deploying...
-                </>
-              ) : (
-                <>
-                  <Terminal className="mr-2 h-4 w-4" />
-                  Start Deployment
-                </>
-              )}
-            </Button>
+           <Button
+        className="bg-teal-500 hover:bg-teal-600 mt-6 rounded w-full"
+        disabled={!address || deploymentStatus.isDeploying}
+        onClick={handleDeploy}
+      >
+        {!address ? (
+          "Connect Wallet to Deploy"
+        ) : deploymentStatus.isDeploying ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Deploying...
+          </>
+        ) : (
+          <>
+            <Terminal className="mr-2 h-4 w-4" />
+            Start Deployment
+          </>
+        )}
+      </Button>
           </div>
         </CardContent>
       </Card>

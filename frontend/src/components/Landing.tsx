@@ -43,11 +43,11 @@ const Landing = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              Deploy Projects. Mint Ownership. Verify with Zero Knowledge.
+              Deploy Projects. Set access rights. Verify ZkProofs. Tokenize Deployments.
             </motion.h1>
             <p className="text-lg sm:text-xl text-gray-400 mb-8">
               Transform your GitHub projects into verifiable deployments with tokenized ownership, powered by
-              ZK-proofs for ultimate security and transparency.
+              ZK based Proof of Location and proof of Internet telemetry for ultimate security and transparency.
             </p>
             <div className="flex justify-center gap-4">
               <Button size="lg" className="bg-teal-500 hover:bg-teal-600 rounded" onClick={handleLogin}>
@@ -116,15 +116,15 @@ const Landing = () => {
         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div className="grid md:grid-cols-3 gap-8 text-center">
             <div>
-              <div className="text-4xl font-bold text-teal-400 mb-2">1000+</div>
+              <div className="text-4xl font-bold text-teal-400 mb-2">10+</div>
               <div className="text-gray-400">Projects Deployed</div>
             </div>
             <div>
-              <div className="text-4xl font-bold text-teal-400 mb-2">500+</div>
-              <div className="text-gray-400">Active Users</div>
+              <div className="text-4xl font-bold text-teal-400 mb-2">50+</div>
+              <div className="text-gray-400">Interested Users</div>
             </div>
             <div>
-              <div className="text-4xl font-bold text-teal-400 mb-2">99.9%</div>
+              <div className="text-4xl font-bold text-teal-400 mb-2">100%</div>
               <div className="text-gray-400">Uptime</div>
             </div>
           </div>

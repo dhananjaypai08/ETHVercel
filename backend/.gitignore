@@ -1,3 +1,6 @@
 env/
 src/__pycache__/
-
+circuits/circom/
+.env
+circuits/node_modules/
+circuits/package-lock.json

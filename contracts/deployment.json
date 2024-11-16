@@ -14,5 +14,8 @@
     "EVM on Flow Testnet": {
         "Contract Address": "0x3A92c403CcfD005C19B4a75E8ee178f3963dB85C",
         "Link": "https://evm-testnet.flowscan.io/address/0x3A92c403CcfD005C19B4a75E8ee178f3963dB85C"
+    },
+    "The graph protocol": {
+        "Subgraph explorer Link for ETHVercel": "https://testnet.thegraph.com/explorer/subgraphs/3FsLDSRgZksvXXwWZSbhmFphdtB4bcW1BaW3TQcL6ft9?view=Query&chain=arbitrum-sepolia"
     }
 }

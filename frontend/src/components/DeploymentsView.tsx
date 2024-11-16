@@ -1,14 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { usePrivy } from '@privy-io/react-auth';
 import { ethers } from 'ethers';
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle, 
-  CardDescription 
-} from '@/components/ui/card';
+import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -17,160 +11,215 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { 
-  Tabs, 
-  TabsContent, 
-  TabsList, 
-  TabsTrigger 
-} from "@/components/ui/tabs";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Search,
-  Filter,
-  ExternalLink,
-  Clock,
-  Github,
-  Globe,
-  ChevronDown,
-  RefreshCw,
-  Box,
-  FileCode,
-  User,
-  NetworkIcon
-} from 'lucide-react';
-import contractData from '../contracts/ETHVercel.json';
-import { useOutletContext } from 'react-router-dom';
+import { Loader2, Search, Github, Globe, User, Clock, RefreshCwIcon, Drop } from 'lucide-react';
+import contractData from "../contracts/ETHVercel.json";
+import VerifiableDeploymentCard from './VerifiableDeploymentCard';
 
-interface ContractContext {
-  contract: ethers.Contract | null;
-  provider: any;
-  currentNetwork: {
-    address: string;
-    chainId: number;
-    name: string;
-    Link: string;
-  } | null;
-  isConnected: boolean;
-  address: string | null;
-}
-
-const DeploymentsView = () => {
-  const [deployments, setDeployments] = useState([]);
-  const [userDeployments, setUserDeployments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [filter, setFilter] = useState('all');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState('newest');
-  const [selectedNetwork, setSelectedNetwork] = useState(Object.keys(contractData.networks)[0]);
-
-  const context = useOutletContext<ContractContext>();
-  const { contract, provider, isConnected, address } = context || {};
-
-  const fetchDeployments = async () => {
-    if (!contract || !isConnected) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-
-      // Fetch all users
-      const allUsers = await contract.AllUsers();
-      console.log(allUsers, provider, contract);
-      // Fetch deployments for each user
-      const allDeployments = await Promise.all(
-        allUsers.map(async (userAddress) => {
-          try {
-            const deploymentsOfUser = await contract.getDeploymentsOfOwner(userAddress);
-            console.log(deploymentsOfUser);
-            return deploymentsOfUser.map((deployment) => ({
-              ...deployment,
-              owner: userAddress,
-              deployedAt: new Date().toISOString() // Placeholder, adjust based on your data
-            }));
-          } catch (error) {
-            console.error(`Error fetching deployments for ${userAddress}:`, error);
-            return [];
-          }
-        })
-      );
-
-      const flattenedDeployments = allDeployments.flat();
-      setDeployments(flattenedDeployments);
-
-      // If user is connected, fetch their deployments
-      if (address) {
-        const userDeploys = await contract.getDeploymentsOfOwner(address);
-        setUserDeployments(userDeploys.map((deploy) => ({
-          ...deploy,
-          owner: address,
-          deployedAt: new Date().toISOString() // Placeholder, adjust based on your data
-        })));
-      }
-    } catch (err) {
-      console.error('Error fetching deployments:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+const DeploymentCard = ({ deployment }) => {
+  
+  const formatDate = (date) => {
+    return new Date(date).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
-  useEffect(() => {
-    fetchDeployments();
-  }, [contract, address, isConnected]);
+  // Parse the deployment data JSON
+  const deploymentData = React.useMemo(() => {
+    try {
+      // The data is in deployment[1] based on the contract structure
+      return JSON.parse(deployment[1]);
+    } catch (e) {
+      console.error('Error parsing deployment data:', e);
+      return null;
+    }
+  }, [deployment]);
 
+  // Structure data based on contract's DeploymentDetails struct
+  const structuredData = {
+    repo_url: deployment[0], // repo_url
+    data: deploymentData,    // parsed JSON data
+    tokenUri: deployment[2], // tokenuri
+    owner: deployment[3]     // owner address
+  };
+
+  return (
+    <Card className="bg-gray-800/50 border-gray-700 hover:bg-gray-800/80 transition-all">
+      <CardHeader className="flex flex-row justify-between items-start">
+        <div>
+          <CardTitle className="text-lg text-gray-200">
+            {deployment.repo_url}
+          </CardTitle>
+          <div className="flex items-center gap-2 mt-1 text-sm text-gray-400">
+            <User className="w-4 h-4" />
+            <span>{deployment.owner.slice(0, 6)}...{deployment.owner.slice(-4)}</span>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          {deploymentData?.ipfsUrl && (
+            <a
+              href={deploymentData.ipfsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-400 hover:text-blue-300 p-2"
+            >
+              <Globe className="w-4 h-4" />
+            </a>
+          )}
+          <a
+            href="https://github.com/nkilm/openai-gpt3"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-purple-400 hover:text-purple-300 p-2"
+          >
+            <Github className="w-4 h-4" />
+          </a>
+        </div>
+      </CardHeader>
+      
+    </Card>
+  );
+};
+
+const DeploymentsView = () => {
+  const { user, ready } = usePrivy();
+  const { wallets } = useWallets();
+  const [contract, setContract] = useState(null);
+  const [deployments, setDeployments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('newest');
+  const [showComponent, setShowComponent] = useState(false);
+
+  const [selectedDeployment, setSelectedDeployment] = useState(null);
+  const [showVerification, setShowVerification] = useState(false);
+
+  // Initialize contract
+  useEffect(() => {
+    const initContract = async () => {
+      if (wallets && wallets.length > 0) {
+        try {
+          const primaryWallet = wallets[0];
+          const ethersProvider = await primaryWallet.getEthersProvider();
+          // const signer = await ethersProvider.getSigner();
+          
+          
+          const contractAddress = contractData.address;
+          // console.log(primaryWallet, ethersProvider, signer, contractAddress);
+          const newContract = new ethers.Contract(
+            contractAddress,
+            contractData.abi,
+            ethersProvider
+          );
+          console.log(await newContract.owner())
+          
+          setContract(newContract);
+        } catch (error) {
+          console.error("Error initializing contract:", error);
+          setError("Failed to initialize contract connection");
+        }
+      }
+    };
+
+    if (ready && wallets.length > 0) {
+      initContract();
+    }
+  }, [ready, wallets]);
+
+  // Fetch deployments
+  useEffect(() => {
+    const fetchDeployments = async () => {
+      if (!contract) return;
+
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Get deployments length using public counter if available
+        // If you have a function to get the number of deployments, use that
+        let currentIndex = 0;
+        const deploymentsList = [];
+        
+        while (true) {
+          try {
+            //Get user at current index
+            const userAddress = await contract.AllUsers(currentIndex);
+            console.log(userAddress);
+            if (!userAddress) break;
+            // console.log(address);
+            // Get deployments for this user
+            const userDeployments = await contract.getDeploymentsOfOwner(userAddress);
+            console.log(userDeployments);
+            // Process deployments
+            if (userDeployments && userDeployments.length > 0) {
+              deploymentsList.push(...userDeployments.map(deployment => ({
+                ...deployment,
+                owner: userAddress
+              })));
+            }
+            console.log(deploymentsList);
+            currentIndex++;
+          } catch (e) {
+            // If we hit an error (like out of bounds), break the loop
+            console.log(e);
+            break;
+          }
+        }
+
+        setDeployments(deploymentsList);
+        console.log(deploymentsList);
+      } catch (err) {
+        console.error('Error fetching deployments:', err);
+        setError(err.message || 'Failed to fetch deployments');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (contract) {
+      fetchDeployments();
+    }
+  }, [contract]);
+
+  // Filter and sort deployments
   const filteredDeployments = React.useMemo(() => {
-    let filtered = filter === 'user' ? userDeployments : deployments;
+    let filtered = [...deployments];
 
     if (searchTerm) {
       filtered = filtered.filter(d => 
         d.repo_url.toLowerCase().includes(searchTerm.toLowerCase()) ||
         d.owner.toLowerCase().includes(searchTerm.toLowerCase())
       );
+      console.log(filtered);
     }
 
     return filtered.sort((a, b) => {
-      switch (sortBy) {
-        case 'newest':
-          return new Date(b.deployedAt).getTime() - new Date(a.deployedAt).getTime();
-        case 'oldest':
-          return new Date(a.deployedAt).getTime() - new Date(b.deployedAt).getTime();
-        case 'owner':
-          return a.owner.localeCompare(b.owner);
-        default:
-          return 0;
+      try {
+        const dataA = JSON.parse(a.data);
+        const dataB = JSON.parse(b.data);
+        
+        if (sortBy === 'newest') {
+          return new Date(dataB.deployedAt) - new Date(dataA.deployedAt);
+        } else {
+          return new Date(dataA.deployedAt) - new Date(dataB.deployedAt);
+        }
+      } catch (e) {
+        return 0;
       }
     });
-  }, [deployments, userDeployments, filter, searchTerm, sortBy]);
+  }, [deployments, searchTerm, sortBy]);
 
-  const networkOptions = Object.entries(contractData.networks).map(([chainId, data]) => ({
-    value: chainId,
-    label: data.name
-  }));
-
-  if (error) {
+  if (!ready || !wallets.length) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
-        <Card className="bg-gray-800 border-red-600">
-          <CardHeader>
-            <CardTitle className="text-red-500">Error Loading Deployments</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-gray-400">{error}</p>
-            <Button 
-              onClick={fetchDeployments}
-              className="mt-4 bg-red-500 hover:bg-red-600"
-            >
-              Retry
-            </Button>
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <Card className="bg-gray-800 border-gray-700">
+          <CardContent className="flex flex-col items-center p-6">
+            <Loader2 className="w-6 h-6 animate-spin text-blue-400 mb-4" />
+            <p className="text-gray-400">Connecting to wallet...</p>
           </CardContent>
         </Card>
       </div>
@@ -178,192 +227,94 @@ const DeploymentsView = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 p-6">
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="max-w-7xl mx-auto space-y-6"
-      >
+    <div className="bg-gray-900 min-h-screen p-6">
+      <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-teal-400 bg-clip-text text-transparent">
-              Deployments
-            </h1>
-            <p className="text-gray-400 mt-1">
-              View and manage your project deployments
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <Select
-              value={selectedNetwork}
-              onValueChange={setSelectedNetwork}
+        <div className="flex flex-col gap-6 mb-8">
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-teal-400 bg-clip-text text-transparent">
+                Deployments
+              </h1>
+              <p className="text-gray-400 mt-2">
+                View all project deployments on the network
+              </p>
+            </div>
+            <Button 
+              onClick={() => setContract(prev => ({ ...prev }))} // Trigger refresh
+              className="bg-blue-500 hover:bg-blue-600 rounded"
             >
-              <SelectTrigger className="w-[180px] bg-gray-800 border-gray-700">
-                <SelectValue placeholder="Select Network" />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-800 border-gray-700">
-                {networkOptions.map(option => (
-                  <SelectItem 
-                    key={option.value} 
-                    value={option.value}
-                    className="text-gray-200 hover:bg-gray-700"
-                  >
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button
-              onClick={fetchDeployments}
-              className="bg-blue-500 hover:bg-blue-600 flex items-center gap-2"
-            >
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCwIcon className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
           </div>
-        </div>
 
-        {/* Filters and Search */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <Input
-              type="text"
-              placeholder="Search deployments..."
-              className="pl-10 bg-gray-800 border-gray-700 focus-visible:ring-teal-500"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+          {/* Filters */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Search by repository or owner..."
+                className="pl-10 bg-gray-800 border-gray-700 rounded"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="bg-gray-800 border-gray-700 rounded">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent className="bg-gray-800 border-gray-700">
+                <SelectItem value="newest">Newest First</SelectItem>
+                <SelectItem value="oldest">Oldest First</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-full bg-gray-800 border-gray-700">
-              <SelectValue placeholder="Sort by" />
-            </SelectTrigger>
-            <SelectContent className="bg-gray-800 border-gray-700">
-              <SelectItem value="newest">Newest First</SelectItem>
-              <SelectItem value="oldest">Oldest First</SelectItem>
-              <SelectItem value="owner">Owner Address</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
 
-        {/* Main Content */}
-        <Tabs defaultValue="all" className="w-full">
-          <TabsList className="bg-gray-800 border-gray-700">
-            <TabsTrigger 
-              value="all"
-              onClick={() => setFilter('all')}
-              className="data-[state=active]:bg-gray-700"
-            >
-              All Deployments
-            </TabsTrigger>
-            <TabsTrigger 
-              value="user"
-              onClick={() => setFilter('user')}
-              className="data-[state=active]:bg-gray-700"
-              disabled={!address}
-            >
-              My Deployments
-            </TabsTrigger>
-          </TabsList>
+        {/* Error State */}
+        {error && (
+          <Card className="bg-red-900/20 border-red-800 mb-6">
+            <CardContent className="p-4">
+              <p className="text-red-400">{error}</p>
+            </CardContent>
+          </Card>
+        )}
 
-          <div className="mt-6">
-            {loading ? (
-              <div className="flex items-center justify-center h-64">
-                <RefreshCw className="w-6 h-6 animate-spin text-blue-500" />
-              </div>
+        {/* Deployments Grid */}
+        {loading ? (
+          <div className="flex items-center justify-center h-64">
+            <Loader2 className="w-6 h-6 animate-spin text-blue-400" />
+          </div>
+        ) : (
+          <div className="grid gap-4">
+            {filteredDeployments.length > 0 ? (
+              filteredDeployments.map((deployment, index) => (
+                <DeploymentCard 
+                  key={`${deployment[2]}-${index}`} 
+                  deployment={deployment} 
+                />
+                
+              ))
             ) : (
-              <div className="grid gap-4">
-                {filteredDeployments.length > 0 ? (
-                  filteredDeployments.map((deployment, index) => (
-                    <motion.div
-                      key={`${deployment.owner}-${index}`}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="w-full"
-                    >
-                      <Card className="bg-gray-800/50 border-gray-700 hover:bg-gray-800/80 transition-all">
-                        <CardHeader>
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <CardTitle className="text-lg text-gray-200">
-                                {deployment.repo_url.split('/').slice(-2).join('/')}
-                              </CardTitle>
-                              <CardDescription className="flex items-center gap-2 text-gray-400">
-                                <User className="w-4 h-4" />
-                                {deployment.owner.slice(0, 6)}...{deployment.owner.slice(-4)}
-                              </CardDescription>
-                            </div>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <ChevronDown className="w-4 h-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent className="bg-gray-800 border-gray-700">
-                                <DropdownMenuItem className="flex items-center gap-2 text-blue-400 hover:text-blue-300">
-                                  <Github className="w-4 h-4" />
-                                  <a 
-                                    href={deployment.repo_url} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                  >
-                                    View Repository
-                                  </a>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="flex items-center gap-2 text-teal-400 hover:text-teal-300">
-                                  <Globe className="w-4 h-4" />
-                                  <a 
-                                    href={deployment.data} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                  >
-                                    View Deployment
-                                  </a>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="flex items-center gap-2 text-purple-400 hover:text-purple-300">
-                                  <Box className="w-4 h-4" />
-                                  <a 
-                                    href={`https://ipfs.io/ipfs/${deployment.tokenuri}`} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                  >
-                                    View on IPFS
-                                  </a>
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div className="flex items-center gap-2 text-gray-400">
-                              <Clock className="w-4 h-4" />
-                              <span>{new Date(deployment.deployedAt).toLocaleString()}</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-gray-400">
-                              <NetworkIcon className="w-4 h-4" />
-                              <span>{contractData.networks[selectedNetwork]?.name}</span>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  ))
-                ) : (
-                  <Card className="bg-gray-800/50 border-gray-700">
-                    <CardContent className="flex flex-col items-center justify-center h-64">
-                      <FileCode className="w-12 h-12 text-gray-600 mb-4" />
-                      <p className="text-gray-400">No deployments found</p>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
+              <Card className="bg-gray-800/50 border-gray-700">
+                <CardContent className="flex flex-col items-center justify-center h-64">
+                  <p className="text-gray-400">No deployments found</p>
+                </CardContent>
+              </Card>
+    
             )}
           </div>
-        </Tabs>
-      </motion.div>
+        )}
+        <Button 
+              onClick={() => setShowComponent(!showComponent)}
+              className="bg-blue-500 hover:bg-blue-600 rounded">
+                Generate Proof
+        </Button>
+        {showComponent && <VerifiableDeploymentCard deployment={filteredDeployments[0]} />}
+      </div>
+      
     </div>
   );
 };
