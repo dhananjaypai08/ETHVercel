@@ -10,6 +10,7 @@ function Sidebar({ activeTab }) {
   const tabs = [
     { id: 'home', name: 'Home', icon: Home, path: '/' },
     { id: 'deploy', name: 'Deploy Project', icon: UploadCloudIcon, path: '/deploy' },
+    { id: 'dashboard', name: 'Analytics Dashboard', icon: UploadCloudIcon, path: '/dashboard' },
   ];
 
   const handleTabClick = (path) => {

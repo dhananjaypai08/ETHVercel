@@ -6,9 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Plus, X, Check, Loader2, Github, Globe, Terminal } from 'lucide-react';
 import axios from 'axios';
 import { create } from "@web3-storage/w3up-client";
-import { filesFromPaths } from 'files-from-path';
 import { ethers } from 'ethers';
 import { useOutletContext } from 'react-router-dom';
+
 
 const BACKEND_URL = 'http://localhost:8000';
 
@@ -37,9 +37,10 @@ const Deploy = () => {
     currentStep: '',
     completedSteps: [],
     error: null,
-    deployedUrls: null
+    deployedUrls: null,
+    showLinks: false
   });
-
+  
   const deploySteps = [
     'Cloning repository',
     'Setting up environment',
@@ -49,6 +50,13 @@ const Deploy = () => {
     'Minting Proof of Deployment SBT'
   ];
 
+  const checkProvider = () => {
+    if (!contract || !contract.provider) {
+      throw new Error('No provider available. Please check your wallet connection.');
+    }
+    return contract.provider;
+  };
+
   const mintDeploymentToken = async (
     ipfsUrl: string,
     ipfsCid: string,
@@ -57,8 +65,9 @@ const Deploy = () => {
     if (!contract || !isConnected) {
       throw new Error('Wallet not connected or contract not initialized');
     }
-
+  
     try {
+      // Create transaction
       const tx = await contract.safeMint(
         githubUrl,
         JSON.stringify({
@@ -69,17 +78,37 @@ const Deploy = () => {
         tokenUri,
         address
       );
-
-      const receipt = await tx.wait();
-      console.log('Token minted successfully');
-      console.log(tx);
-      console.log(`https://explorer-ui.cardona.zkevm-rpc.com/tx/${receipt.hash}`);
-      setTxnHash(`https://explorer-ui.cardona.zkevm-rpc.com/tx/${receipt.hash}`);
+      
+      console.log(tx.hash);
+      // Set the transaction hash immediately
+      const explorerUrl = `https://explorer-ui.cardona.zkevm-rpc.com/tx/${tx.hash}`;
+      setTxnHash(explorerUrl);
+  
+      // Update the deployment status to show completion
+      setDeploymentStatus(prev => ({
+        ...prev,
+        isDeploying: false,
+        showLinks: true,
+        currentStep: '', // Clear the current step
+        completedSteps: [...prev.completedSteps, 'Minting Proof of Deployment SBT'], // Add the final step to completed
+        deployedUrls: {
+          ...prev.deployedUrls,
+          explorerUrl
+        }
+      }));
+  
     } catch (error) {
       console.error('Error minting token:', error);
+      setDeploymentStatus(prev => ({
+        ...prev,
+        error: error.message || 'Failed to mint token',
+        isDeploying: false,
+        currentStep: ''  // Clear the current step on error too
+      }));
       throw error;
     }
   };
+
 
   const uploadToIPFS = async (buildPath) => {
     try {
@@ -168,7 +197,8 @@ const Deploy = () => {
       currentStep: deploySteps[0],
       completedSteps: [],
       error: null,
-      deployedUrls: null
+      deployedUrls: null,
+      showLinks: false
     });
   
     try {
@@ -222,15 +252,8 @@ const Deploy = () => {
       updateDeploymentStep('Deploying to Storacha');
       const buildPath = buildResponse.data.buildPath;
       
-      const { ipfsUrl, ipfsCid, ipnsName } = await uploadToIPFS(buildPath);
+      const { ipfsUrl, ipfsCid } = await uploadToIPFS(buildPath);
       updateDeploymentStep('Deploying to Storacha', true);
-      console.log(address, contract, isConnected);
-      // Store deployment info
-      // await axios.post(`${BACKEND_URL}/api/store_deployment`, {
-      //   github_url: githubUrl,
-      //   ipfs_cid: ipfsCid,
-      //   ipns_name: ipnsName
-      // });
 
       updateDeploymentStep('Minting Proof of Deployment SBT');
       
@@ -262,26 +285,24 @@ const Deploy = () => {
       );
       const metadataFile = new File([metadataBlob], 'metadata.json');
       const client = await create();
-      // Upload metadata to IPFS
       const metadataCid = await client.uploadFile(metadataFile);
       const tokenUri = `https://${metadataCid}.ipfs.w3s.link/metadata.json`;
-  
+
+      // Set initial deployment URLs
+      setDeploymentStatus(prev => ({
+        ...prev,
+        deployedUrls: {
+          ipfs: ipfsUrl,
+        }
+      }));
 
       // Mint the SBT
-      await mintDeploymentToken(ipfsUrl, ipfsCid, tokenUri);
-
-      // setDeploymentStatus(prev => ({
-      //   ...prev,
-      //   completedSteps: [...prev.completedSteps, 'Minting Proof of Deployment SBT'],
-      //   currentStep: '',
-      //   isDeploying: false,
-      //   deployedUrls: {
-      //     ipfs: ipfsUrl,
-      //     tokenUri
-      //   }
-      // }));
-      updateDeploymentStep('Minting Proof of Deployment SBT', true);
-  
+      try {
+        await mintDeploymentToken(ipfsUrl, ipfsCid, tokenUri);
+      } catch (error) {
+        console.error('Minting error:', error);
+        throw new Error('Failed to mint token: ' + (error.message || 'Unknown error'));
+      }
   
     } catch (error) {
       console.error('Deployment error:', error);
@@ -445,7 +466,7 @@ const Deploy = () => {
             </div>
 
             {/* Deployed URLs Section */}
-            {deploymentStatus.deployedUrls && (
+            {deploymentStatus.showLinks && deploymentStatus.deployedUrls && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -467,34 +488,23 @@ const Deploy = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between">
-      <span className="text-gray-300">Transaction:</span>
-      <a
-        href={txnHash}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center text-teal-400 hover:text-teal-300"
-      >
-        <Globe className="h-4 w-4 mr-1" />
-        View on Explorer
-      </a>
-    </div>
-
-                {/* IPNS URL */}
-                <div className="p-4 bg-gray-700/30 rounded-lg border border-gray-600">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-300">IPNS URL (Permanent):</span>
-                    <a
-                      href={deploymentStatus.deployedUrls.ipns}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center text-teal-400 hover:text-teal-300"
-                    >
-                      <Globe className="h-4 w-4 mr-1" />
-                      View on IPNS
-                    </a>
+                {/* Transaction URL */}
+                {txnHash && (
+                  <div className="p-4 bg-gray-700/30 rounded-lg border border-gray-600">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-300">Transaction:</span>
+                      <a
+                        href={txnHash}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center text-teal-400 hover:text-teal-300"
+                      >
+                        <Globe className="h-4 w-4 mr-1" />
+                        View on Explorer
+                      </a>
+                    </div>
                   </div>
-                </div>
+                )}
               </motion.div>
             )}
 
