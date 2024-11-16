@@ -1,4 +1,5 @@
+deployments/
+Attestation/
 backend/env/
 backend/oauth/node_modules/
-deployments
-Attestation/
+plonky3_rangecheck/
