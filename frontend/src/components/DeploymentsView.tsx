@@ -191,8 +191,8 @@ const DeploymentsView = () => {
 
     if (searchTerm) {
       filtered = filtered.filter(d => 
-        d.repo_url.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        d.owner.toLowerCase().includes(searchTerm.toLowerCase())
+        d[0].toLowerCase().includes(searchTerm.toLowerCase()) ||
+        d[2].toLowerCase().includes(searchTerm.toLowerCase())
       );
       console.log(filtered);
     }

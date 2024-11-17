@@ -1,4 +1,3 @@
-import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ApolloClient, InMemoryCache, gql } from '@apollo/client';
 import {
@@ -11,6 +10,183 @@ import {
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { useState, useRef, useEffect } from 'react';
+import { 
+  MessageCircle, 
+  Send, 
+  MinimizeIcon, 
+  Maximize2, 
+  X,
+  Bot
+} from 'lucide-react';
+import { Input } from '@/components/ui/input';
+
+// Add these interfaces
+interface ChatMessage {
+  type: 'user' | 'bot';
+  content: string;
+  timestamp: Date;
+}
+
+const AnalyticsChatbot = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [message, setMessage] = useState('');
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const handleSendMessage = async () => {
+    if (!message.trim()) return;
+
+    // Add user message
+    const userMessage: ChatMessage = {
+      type: 'user',
+      content: message,
+      timestamp: new Date()
+    };
+    setMessages(prev => [...prev, userMessage]);
+    setMessage('');
+    setIsLoading(true);
+
+    try {
+      // Call your backend API
+      const response = await fetch(`http://localhost:8000/query?query=${encodeURIComponent(message)}`);
+      const data = await response.text();
+
+      // Add bot response
+      const botMessage: ChatMessage = {
+        type: 'bot',
+        content: data,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, botMessage]);
+    } catch (error) {
+      console.error('Error querying AI:', error);
+      const errorMessage: ChatMessage = {
+        type: 'bot',
+        content: 'Sorry, I encountered an error processing your request.',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (!isOpen) {
+    return (
+      <button
+        onClick={() => setIsOpen(true)}
+        className="fixed bottom-4 right-4 bg-blue-500 hover:bg-blue-600 text-white rounded-full p-3 shadow-lg transition-all duration-200"
+      >
+        <MessageCircle className="w-6 h-6" />
+      </button>
+    );
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 20 }}
+      className={`fixed bottom-4 right-4 bg-gray-800 border border-gray-700 rounded-lg shadow-xl transition-all duration-200 ${
+        isMinimized ? 'w-72 h-12' : 'w-96 h-[500px]'
+      }`}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 border-b border-gray-700">
+        <div className="flex items-center gap-2">
+          <Bot className="w-5 h-5 text-blue-400" />
+          <span className="font-medium text-gray-200">Analytics Assistant</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsMinimized(!isMinimized)}
+            className="text-gray-400 hover:text-gray-300"
+          >
+            {isMinimized ? <Maximize2 className="w-4 h-4" /> : <MinimizeIcon className="w-4 h-4" />}
+          </button>
+          <button
+            onClick={() => setIsOpen(false)}
+            className="text-gray-400 hover:text-gray-300"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {!isMinimized && (
+        <>
+          {/* Messages Area */}
+          <div className="p-4 h-[380px] overflow-y-auto space-y-4">
+            {messages.map((msg, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`max-w-[80%] p-3 rounded-lg ${
+                    msg.type === 'user'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-700 text-gray-200'
+                  }`}
+                >
+                  <p className="text-sm">{msg.content}</p>
+                  <p className="text-xs opacity-75 mt-1">
+                    {msg.timestamp.toLocaleTimeString()}
+                  </p>
+                </div>
+              </motion.div>
+            ))}
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="bg-gray-700 text-gray-200 p-3 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" />
+                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce delay-100" />
+                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce delay-200" />
+                  </div>
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Input Area */}
+          <div className="p-4 border-t border-gray-700">
+            <div className="flex items-center gap-2">
+              <Input
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                placeholder="Ask about deployment analytics..."
+                className="flex-1 bg-gray-700 border-gray-600 focus:border-blue-500"
+              />
+              <button
+                onClick={handleSendMessage}
+                disabled={isLoading}
+                className="p-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg disabled:opacity-50"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </motion.div>
+  );
+};
 
 const client = new ApolloClient({
   uri: 'https://api.studio.thegraph.com/query/90589/ethvercel/version/latest',
@@ -366,6 +542,8 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </motion.div>
+
+      <AnalyticsChatbot />
     </div>
   );
 };

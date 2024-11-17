@@ -68,9 +68,9 @@ async def query(query: str):
 async def getCurrentVal():
     # Calls the 1inch Network- Tokens current valueReturns the current value for supported tokens. Data is grouped by chains and addresses.
     address = "0xd8da6bf26964af9d7eed9e03e53415d37aa96045"
-    offset = 0
+    offset = 1
     limit = 50
-    chainIds = [1]
+    chainIds = 1
     API_KEY = 'MVCsE1Vr9AUtqfzIkiic5CacD2cn7iFj'
     apiUrl = f"https://api.1inch.dev/nft/v1/byaddress/?address=${address}&chainIds=${chainIds}&limit=${limit}&offset=${offset}"
     

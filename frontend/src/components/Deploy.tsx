@@ -21,6 +21,7 @@ const Deploy = () => {
   const [githubUrl, setGithubUrl] = useState('');
   const [txnHash, setTxnHash] = useState();
   const [envVariables, setEnvVariables] = useState([{ key: '', value: '' }]);
+  const [flag, setFlag] = useState(false);
 
   const [deploymentStatus, setDeploymentStatus] = useState({
     isDeploying: false,
@@ -97,7 +98,7 @@ const Deploy = () => {
       );
       
       console.log('Transaction hash:', tx.hash);
-      const explorerUrl = `https://sepolia.scrollscan.com/tx/${tx.hash}`;
+      const explorerUrl = `https://sepolia-blockscout.scroll.io/tx/${tx.hash}`;
       setTxnHash(explorerUrl);
   
       setDeploymentStatus(prev => ({
@@ -378,10 +379,28 @@ const Deploy = () => {
 
             {/* Environment Variables Section */}
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              
+
+              <AnimatePresence>
+                <Input type="checkbox" onChange={() => setFlag(!flag)} className="w-1000 bg-gray-900 border-gray-700 focus-visible:ring-teal-500 rounded" placeholder="Mark as private access"/>
+                <label className="block text-sm font-medium text-red-300">Mark as Private Deployment</label>
+                {flag &&
+                <> 
+              <Input
+                  type="text"
+                    placeholder="Enter Radius access in Kms"
+                      className="w-1000 bg-gray-900 border-gray-700 focus-visible:ring-teal-500 rounded"
+                      />
+
+                <Input type="text" placeholder="Enter response time in seconds"
+                      className="w-1000 bg-gray-900 border-gray-700 focus-visible:ring-teal-500 rounded"
+                      />
+                      </>}
                 <label className="block text-sm font-medium text-gray-300">
                   Environment Variables
                 </label>
+                <div className="flex items-center justify-between">
+                
                 <Button
                   variant="outline"
                   size="sm"
@@ -392,8 +411,6 @@ const Deploy = () => {
                   Add Variable
                 </Button>
               </div>
-
-              <AnimatePresence>
                 {envVariables.map((variable, index) => (
                   <motion.div
                     key={index}
