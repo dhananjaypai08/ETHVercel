@@ -142,26 +142,26 @@ const Deploy = () => {
       const client = await create();
       await client.setCurrentSpace("did:key:z6MkunTdA3s954ZXkKRxcViA3vCsfuNJX3pKSoa1GE7apsZX");
 
-    // Convert the received data to a File object
-    // const buildFiles = new File(
-    //   [filesResponse.data], 
-    //   'build.zip', 
-    //   { type: 'application/zip' }
-    // );
+    Convert the received data to a File object
+    const buildFiles = new File(
+      [filesResponse.data], 
+      'build.zip', 
+      { type: 'application/zip' }
+    );
 
-    // Upload to IPFS
-    // console.log('Uploading to IPFS...');
-    // const cid = await client.uploadFile(buildFiles);
+    Upload to IPFS
+    console.log('Uploading to IPFS...');
+    const cid = await client.uploadFile(buildFiles);
     const cid = "bafybeidn2xt6wiyxqi7dqqfx6qxowizg2ob5xmyg6i5ho7bwz6ti4vhv6e";
     console.log('File uploaded with CID:', cid);
 
-    // Create IPNS record
-    // console.log('Creating IPNS record...');
-    // const name = await Name.create();
-    // console.log('created new name: ', name.toString());
-      // const name = await client.name.publish(cid);
-      // console.log('Published to IPNS:', name);
-    // const revision = await Name.v0(name, `https://${cid}.ipfs.w3s.link/index.html`);
+    Create IPNS record
+    console.log('Creating IPNS record...');
+    const name = await Name.create();
+    console.log('created new name: ', name.toString());
+      const name = await client.name.publish(cid);
+      console.log('Published to IPNS:', name);
+    const revision = await Name.v0(name, `https://${cid}.ipfs.w3s.link/index.html`);
 
     return {
       ipfsUrl: `https://${cid}.ipfs.w3s.link/index.html`,
