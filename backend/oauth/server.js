@@ -204,3 +204,9 @@ app.post('/createschema', async(req, res) => {
     console.log(response);
     res.json(response);
 });
+
+
+const port = 4000;
+app.listen(port, () => {
+  console.log(`Server started on port ${port}`);
+});
