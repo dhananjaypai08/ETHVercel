@@ -1,12 +1,6 @@
 {
-    "address": "0x5894f81c558f1a302ce81d31f2562d2b19f7dafd",
+    "address": "0xB32fdc2DED2DffCfA3442Def90fb13AFBa5683A2",
     "networks": {
-        "48899": {
-            "address" : "0x3A92c403CcfD005C19B4a75E8ee178f3963dB85C",
-            "Link": "https://explorer.testnet.zircuit.com/address/0x3A92c403CcfD005C19B4a75E8ee178f3963dB85C",
-            "chainId": 48899,
-            "Name": "Zircuit Testnet"
-        },
         "534351": {
             "address": "0x6e8c29600df7db8e229cbd95283d0bd9e52c0809",
             "Link": "https://sepolia.scrollscan.com/are code ddress/0x6e8c29600df7db8e229cbd95283d0bd9e52c0809",
@@ -19,23 +13,9 @@
             "chainId": 2442,
             "name": "Polygon ZKEVM"
         },
-        "545": {
-            "address": "0x3A92c403CcfD005C19B4a75E8ee178f3963dB85C",
-            "Link": "https://evm-testnet.flowscan.io/address/0x3A92c403CcfD005C19B4a75E8ee178f3963dB85C",
-            "chainId": 545 ,
-            "name": "EVM on Flow Testnet"
-        },
-        "": {
-            "address": "",
-            "Link": "https://sepolia.mantlescan.xyz/address/0x3a92c403ccfd005c19b4a75e8ee178f3963db85c",
-            "chainId": "",
-            "name": "Mantle Testnet"
-        },
-        "59141":{
-            "address": "0x3A92c403CcfD005C19B4a75E8ee178f3963dB85C",
-            "Link": "https://sepolia.lineascan.build/address/0x3a92c403ccfd005c19b4a75e8ee178f3963db85c",
-            "chainId": "59141",
-            "name": "Linea Sepolia"
+        "52085143": {
+            "address": "0xB32fdc2DED2DffCfA3442Def90fb13AFBa5683A2",
+            "Link": "https://testnet.explorer.ethena.fi/address/0xB32fdc2DED2DffCfA3442Def90fb13AFBa5683A2"
         }
     },
     "abi": [

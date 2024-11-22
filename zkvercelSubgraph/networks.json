@@ -1,0 +1,8 @@
+{
+  "scroll-sepolia": {
+    "ETHVercel": {
+      "address": "0x6e8c29600df7db8e229cbd95283d0bd9e52c0809",
+      "startBlock": 7293953
+    }
+  }
+}

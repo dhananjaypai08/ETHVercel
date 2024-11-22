@@ -6,11 +6,11 @@ schema:
 dataSources:
   - kind: ethereum
     name: ETHVercel
-    network: polygon-zkevm-cardona
+    network: scroll-sepolia
     source:
-      address: "0x5894f81c558f1a302ce81d31f2562d2b19f7dafd"
+      address: "0x6e8c29600df7db8e229cbd95283d0bd9e52c0809"
       abi: ETHVercel
-      startBlock: 8339405
+      startBlock: 7293953
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7

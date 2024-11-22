@@ -103,19 +103,21 @@ const DeploymentsView = () => {
     const initContract = async () => {
       if (wallets && wallets.length > 0) {
         try {
+          console.log(wallets[0]);
           const primaryWallet = wallets[0];
           const ethersProvider = await primaryWallet.getEthersProvider();
           // const signer = await ethersProvider.getSigner();
           
-          
+          console.log(ethersProvider);
           const contractAddress = contractData.address;
+          console.log(contractAddress)
           // console.log(primaryWallet, ethersProvider, signer, contractAddress);
           const newContract = new ethers.Contract(
             contractAddress,
             contractData.abi,
             ethersProvider
           );
-          console.log(await newContract.owner())
+          
           
           setContract(newContract);
         } catch (error) {
