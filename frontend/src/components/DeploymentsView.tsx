@@ -144,12 +144,16 @@ const DeploymentsView = () => {
         // Get deployments length using public counter if available
         // If you have a function to get the number of deployments, use that
         let currentIndex = 0;
+        let vis = {};
         const deploymentsList = [];
         
-        while (true) {
+        while (currentIndex<5) {
           try {
             //Get user at current index
             const userAddress = await contract.AllUsers(currentIndex);
+            if(vis.userAddress == 1){ break; }
+            vis[userAddress] = 1;
+            
             console.log(userAddress);
             if (!userAddress) break;
             // console.log(address);
@@ -157,13 +161,16 @@ const DeploymentsView = () => {
             const userDeployments = await contract.getDeploymentsOfOwner(userAddress);
             console.log(userDeployments);
             // Process deployments
-            if (userDeployments && userDeployments.length > 0) {
-              deploymentsList.push(...userDeployments.map(deployment => ({
-                ...deployment,
-                owner: userAddress
-              })));
+            // if (userDeployments && userDeployments.length > 0) {
+            //   deploymentsList.push(...userDeployments.map(deployment => ({
+            //     ...deployment,
+            //     owner: userAddress
+            //   })));
+            // }
+            for(let i=0;i<userDeployments.length;i++){
+              deploymentsList.push(userDeployments[i]);
             }
-            console.log(deploymentsList);
+            
             currentIndex++;
           } catch (e) {
             // If we hit an error (like out of bounds), break the loop
@@ -171,7 +178,7 @@ const DeploymentsView = () => {
             break;
           }
         }
-
+        // const deploymentsL = deploymentsList.slice(0, 0+5);
         setDeployments(deploymentsList);
         console.log(deploymentsList);
       } catch (err) {
@@ -190,7 +197,6 @@ const DeploymentsView = () => {
   // Filter and sort deployments
   const filteredDeployments = React.useMemo(() => {
     let filtered = [...deployments];
-
     if (searchTerm) {
       filtered = filtered.filter(d => 
         d[0].toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -198,8 +204,7 @@ const DeploymentsView = () => {
       );
       console.log(filtered);
     }
-
-    return filtered.sort((a, b) => {
+    const data  = filtered.sort((a, b) => {
       try {
         const dataA = JSON.parse(a.data);
         const dataB = JSON.parse(b.data);
@@ -213,6 +218,8 @@ const DeploymentsView = () => {
         return 0;
       }
     });
+    console.log(data);
+    return data;
   }, [deployments, searchTerm, sortBy]);
 
   if (!ready || !wallets.length) {
@@ -242,6 +249,7 @@ const DeploymentsView = () => {
                 View all project deployments on the network
               </p>
             </div>
+            
             <Button 
               onClick={() => setContract(prev => ({ ...prev }))} // Trigger refresh
               className="bg-blue-500 hover:bg-blue-600 rounded"
@@ -253,7 +261,9 @@ const DeploymentsView = () => {
 
           {/* Filters */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          
             <div className="relative">
+            
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <Input
                 type="text"
@@ -283,6 +293,12 @@ const DeploymentsView = () => {
             </CardContent>
           </Card>
         )}
+        <Button 
+              onClick={() => setShowComponent(!showComponent)}
+              className="bg-blue-500 hover:bg-blue-600 rounded">
+                Generate Proof
+        </Button>
+        {showComponent && <VerifiableDeploymentCard deployment={filteredDeployments[0]} />}
 
         {/* Deployments Grid */}
         {loading ? (
@@ -297,24 +313,20 @@ const DeploymentsView = () => {
                   key={`${deployment[2]}-${index}`} 
                   deployment={deployment} 
                 />
-                
+              
               ))
             ) : (
               <Card className="bg-gray-800/50 border-gray-700">
                 <CardContent className="flex flex-col items-center justify-center h-64">
                   <p className="text-gray-400">No deployments found</p>
+                  
                 </CardContent>
               </Card>
     
             )}
           </div>
         )}
-        <Button 
-              onClick={() => setShowComponent(!showComponent)}
-              className="bg-blue-500 hover:bg-blue-600 rounded">
-                Generate Proof
-        </Button>
-        {showComponent && <VerifiableDeploymentCard deployment={filteredDeployments[0]} />}
+        
       </div>
       
     </div>

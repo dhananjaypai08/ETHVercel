@@ -189,7 +189,7 @@ const AnalyticsChatbot = () => {
 };
 
 const client = new ApolloClient({
-  uri: 'https://api.studio.thegraph.com/query/90589/ethvercel/version/latest',
+  uri: 'https://api.goldsky.com/api/public/project_cm3rlo9y0r3jf01y00qmy2kqb/subgraphs/ZKVercel/0.0.1/gn',
   cache: new InMemoryCache(),
 });
 
@@ -320,7 +320,7 @@ const Dashboard = () => {
         ? ((data.deploymentMaps.length / data.mints.length) * 100).toFixed(1) + '%'
         : '0%',
       icon: CheckCircle,
-      description: 'Uptime using ChainLink Automations'
+      description: 'Uptime of the Server'
     }
   };
 

@@ -19,6 +19,8 @@
     "@radix-ui/react-tabs": "^1.1.1",
     "@web3-storage/w3up-client": "^16.4.1",
     "@web3modal/ethers": "^5.1.11",
+    "@zerodev/ecdsa-validator": "^5.4.0",
+    "@zerodev/sdk": "^5.4.0",
     "axios": "^1.7.7",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",

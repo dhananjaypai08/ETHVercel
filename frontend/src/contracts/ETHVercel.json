@@ -1,5 +1,5 @@
 {
-    "address": "0xB32fdc2DED2DffCfA3442Def90fb13AFBa5683A2",
+    "address": "0x57151B95722784fBF9002Ae1B2d7719d7429Dd30",
     "networks": {
         "534351": {
             "address": "0x6e8c29600df7db8e229cbd95283d0bd9e52c0809",
@@ -7,11 +7,11 @@
             "chainId": 534351,
             "name": "Scroll Sepolia"
         }, 
-        "2442": {
-            "address": "0x5894f81c558f1a302ce81d31f2562d2b19f7dafd",
-            "Link": "https://cardona-zkevm.polygonscan.com/address/0x5894f81c558f1a302ce81d31f2562d2b19f7dafd",
-            "chainId": 2442,
-            "name": "Polygon ZKEVM"
+        "11155111": {
+            "address": "0x57151B95722784fBF9002Ae1B2d7719d7429Dd30",
+            "Link": "https://sepolia.etherscan.io/address/0x57151b95722784fbf9002ae1b2d7719d7429dd30",
+            "chainId": 11155111,
+            "name": "Ethereum Sepolia"
         },
         "52085143": {
             "address": "0xB32fdc2DED2DffCfA3442Def90fb13AFBa5683A2",
