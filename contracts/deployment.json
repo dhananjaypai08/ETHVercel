@@ -15,7 +15,7 @@
         "Contract Address": "0x3A92c403CcfD005C19B4a75E8ee178f3963dB85C",
         "Link": "https://evm-testnet.flowscan.io/address/0x3A92c403CcfD005C19B4a75E8ee178f3963dB85C"
     },
-    "The graph protocol": {
-        "Subgraph explorer Link for ETHVercel": "https://testnet.thegraph.com/explorer/subgraphs/3FsLDSRgZksvXXwWZSbhmFphdtB4bcW1BaW3TQcL6ft9?view=Query&chain=arbitrum-sepolia"
+    "goldsky subgraph": {
+        "Subgraph explorer Link for ETHVercel": "https://api.goldsky.com/api/public/project_cm3rlo9y0r3jf01y00qmy2kqb/subgraphs/ZKVercel/0.0.1/gn"
     }
 }

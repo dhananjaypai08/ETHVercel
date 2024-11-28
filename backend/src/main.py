@@ -27,7 +27,7 @@ app = FastAPI()
 origins = ["http://localhost:3000", "*", "http://localhost:5173"]
 
 sg = Subgrounds()
-default_endpoint = "https://api.studio.thegraph.com/query/90589/ethvercel/version/latest"
+default_endpoint = "https://api.goldsky.com/api/public/project_cm3rlo9y0r3jf01y00qmy2kqb/subgraphs/ZKVercel/0.0.1/gn"
 genai.configure(api_key='AIzaSyAko8amOXOb97gqMC6OBZYOiY0Ela8XSrs')
 model = genai.GenerativeModel(model_name='gemini-pro')
 

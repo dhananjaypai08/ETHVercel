@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Home, UploadCloudIcon, ViewIcon, GitGraphIcon, HomeIcon } from 'lucide-react';
+import { Home, UploadCloudIcon, ViewIcon, GitGraphIcon, HomeIcon, Package2Icon } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 
 function Sidebar({ activeTab }) {
@@ -9,6 +9,7 @@ function Sidebar({ activeTab }) {
   
   const tabs = [
     { id: 'home', name: 'Home', icon: HomeIcon, path: '/' },
+    { id: 'deploymentcredentials', name: 'Buy Deployment Credentials', icon: Package2Icon, path: '/deploymentcredentials' },
     { id: 'deploy', name: 'Deploy Project', icon: UploadCloudIcon, path: '/deploy' },
     { id: 'deployments', name: 'View Deployments', icon: ViewIcon, path: '/deployments' },
     { id: 'dashboard', name: 'Analytics Dashboard', icon: GitGraphIcon, path: '/dashboard' },

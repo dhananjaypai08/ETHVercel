@@ -59,180 +59,7 @@ const Deploy = () => {
     deployedUrls: null,
     showLinks: false
   });
-
-  const [stakeAmount, setStakeAmount] = useState('1'); // Default 1 USDe
-  const [stakingStatus, setStakingStatus] = useState({
-    isStaking: false,
-    step: '',
-    error: null
-  });
-  const [balances, setBalances] = useState({
-    usde: '0',
-    susde: '0'
-  });
-  const [kernelClient, setKernelClient] = useState(null);
-  const [cooldownActive, setCooldownActive] = useState(false);
-  const [cooldownEnd, setCooldownEnd] = useState(null);
-
-  // Initialize ZeroDev kernel account
-  useEffect(() => {
-    const initKernelAccount = async () => {
-      if (wallets && wallets.length > 0) {
-        try {
-          const primaryWallet = wallets[0];
-          const ethersProvider = await primaryWallet.getEthersProvider();
-          const signer = await ethersProvider.getSigner();
-
-          const privateKey = ethers.Wallet.createRandom().privateKey;
-          const account = ethers.Wallet.fromPrivateKey(privateKey);
-          console.log(account);
-          const ecdsaValidator = await signerToEcdsaValidator(ethersProvider, {
-            signer: new ethers.Wallet(privateKey),
-            entryPoint: getEntryPoint("0.7"),
-            kernelVersion: KERNEL_V3_1
-          });
-
-          const kernelAccount = await createKernelAccount(ethersProvider, {
-            plugins: {
-              sudo: ecdsaValidator,
-            },
-            entryPoint: getEntryPoint("0.7"),
-            kernelVersion: KERNEL_V3_1
-          });
-
-          const zerodevPaymaster = createZeroDevPaymasterClient({
-            chain: ethersProvider.network,
-            transport: ethers.providers.JsonRpcProvider(PAYMASTER_RPC),
-          });
-
-          const client = createKernelAccountClient({
-            account: kernelAccount,
-            chain: ethersProvider.network,
-            bundlerTransport: ethers.providers.JsonRpcProvider(BUNDLER_RPC),
-            paymaster: {
-              getPaymasterData(userOperation) {
-                return zerodevPaymaster.sponsorUserOperation({userOperation});
-              }
-            },
-          });
-
-          setKernelClient(client);
-        } catch (error) {
-          console.error("Error initializing kernel account:", error);
-        }
-      }
-    };
-
-    initKernelAccount();
-  }, [wallets]);
-
-  // Fetch balances
-  const fetchBalances = async () => {
-    if (!wallets || wallets.length === 0) return;
-
-    try {
-      const provider = await wallets[0].getEthersProvider();
-    
-      const usdeContract = new ethers.Contract(USDE_ADDRESS, USDE_ABI, provider);
-      const susdeContract = new ethers.Contract(SUSDE_ADDRESS, SUSDE_ABI, provider);
-
-      // const usdeBalance = await usdeContract.balanceOf(wallets[0].address);
-      // const susdeBalance = await susdeContract.balanceOf(wallets[0].address);
-      
-      setBalances({
-        usde: "1",
-        susde: "0"
-      });
-    } catch (error) {
-      console.error("Error fetching balances:", error);
-    }
-  };
-
-  useEffect(() => {
-    if (wallets && wallets.length > 0) {
-      fetchBalances();
-    }
-  }, [wallets]);
-
-  const handleStake = async () => {
-    console.log(kernelClient, wallets);
-    if (!kernelClient || !wallets || wallets.length === 0) return;
-
-    setStakingStatus({ isStaking: true, step: 'Approving USDe', error: null });
-    console.log('hellooo');
-    try {
-      const amount = ethers.utils.parseUnits(stakeAmount, 18);
-      const provider = await wallets[0].getEthersProvider();
-      const signer = await provider.getSigner();
-
-      // First approve sUSDe to spend USDe
-      const usdeContract = new ethers.Contract(USDE_ADDRESS, USDE_ABI, signer);
-      console.log(amount, usdeContract);
-      const approveTx = await usdeContract.approve(SUSDE_ADDRESS, amount);
-      await approveTx.wait();
-
-      setStakingStatus({ isStaking: true, step: 'Staking USDe', error: null });
-
-      // Now stake USDe
-      const susdeContract = new ethers.Contract(SUSDE_ADDRESS, SUSDE_ABI, signer);
-      const stakeTx = await susdeContract.deposit(amount, wallets[0].address);
-      await stakeTx.wait();
-
-      setStakingStatus({ isStaking: false, step: '', error: null });
-      await fetchBalances();
-
-    } catch (error) {
-      console.error("Staking error:", error);
-      setStakingStatus({ 
-        isStaking: false, 
-        step: '', 
-        error: error.message || "Failed to stake USDe" 
-      });
-    }
-  };
-
-  const initiateUnstake = async () => {
-    if (!kernelClient || !wallets || wallets.length === 0) return;
-
-    try {
-      const provider = await wallets[0].getEthersProvider();
-      const signer = await provider.getSigner();
-      const susdeContract = new ethers.Contract(SUSDE_ADDRESS, SUSDE_ABI, signer);
-
-      const amount = ethers.utils.parseUnits(balances.susde, 18);
-      const tx = await susdeContract.cooldownShares(amount);
-      await tx.wait();
-
-      // Set cooldown timer
-      const cooldownDuration = await susdeContract.cooldownDuration();
-      const endTime = Date.now() + (cooldownDuration.toNumber() * 1000);
-      setCooldownEnd(endTime);
-      setCooldownActive(true);
-
-    } catch (error) {
-      console.error("Error initiating unstake:", error);
-    }
-  };
-
-  const completeUnstake = async () => {
-    if (!kernelClient || !wallets || wallets.length === 0) return;
-
-    try {
-      const provider = await wallets[0].getEthersProvider();
-      const signer = await provider.getSigner();
-      const susdeContract = new ethers.Contract(SUSDE_ADDRESS, SUSDE_ABI, signer);
-
-      const tx = await susdeContract.unstake(wallets[0].address);
-      await tx.wait();
-
-      setCooldownActive(false);
-      setCooldownEnd(null);
-      await fetchBalances();
-
-    } catch (error) {
-      console.error("Error completing unstake:", error);
-    }
-  };
+  
 
   // Initialize contract
   useEffect(() => {
@@ -245,7 +72,7 @@ const Deploy = () => {
           setProvider(ethersProvider);
           
           const signer = await ethersProvider.getSigner();
-          const networkId = '534351'; // Scroll Sepolia testnet
+          const networkId = '11155111'; 
           
           const newContract = new ethers.Contract(
             contractData.networks[networkId].address,
@@ -300,7 +127,7 @@ const Deploy = () => {
       );
       
       console.log('Transaction hash:', tx.hash);
-      const explorerUrl = `https://testnet.explorer.ethena.fi/tx/${tx.hash}`;
+      const explorerUrl = `https://sepolia.etherscan.io/tx/${tx.hash}`;
       setTxnHash(explorerUrl);
   
       setDeploymentStatus(prev => ({
@@ -559,98 +386,7 @@ const Deploy = () => {
         </p>
       </motion.div>
 
-      <Card className="bg-gray-800/50 border-gray-700 mt-8">
-        <CardHeader>
-          <CardTitle>Stake USDe</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {/* Balances Display */}
-            <div className="grid grid-cols-2 gap-4">
-              <Card className="bg-gray-700/50">
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400">USDe Balance</span>
-                    <span className="text-xl font-bold">{balances.usde}</span>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="bg-gray-700/50">
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400">sUSDe Balance</span>
-                    <span className="text-xl font-bold">{balances.susde}</span>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Staking Controls */}
-            <div className="flex gap-4">
-              <Input
-                type="number"
-                value={stakeAmount}
-                onChange={(e) => setStakeAmount(e.target.value)}
-                placeholder="Amount to stake"
-                className="bg-gray-900 border-gray-700"
-              />
-              <Button
-                onClick={handleStake}
-                disabled={stakingStatus.isStaking || !wallets.length}
-                className="bg-teal-500 hover:bg-teal-600"
-              >
-                {stakingStatus.isStaking ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {stakingStatus.step}
-                  </>
-                ) : (
-                  <>
-                    <DollarSign className="mr-2 h-4 w-4" />
-                    Stake USDe
-                  </>
-                )}
-              </Button>
-            </div>
-
-            {/* Unstaking Controls */}
-            {parseFloat(balances.susde) > 0 && (
-              <div className="mt-4">
-                {!cooldownActive ? (
-                  <Button
-                    onClick={initiateUnstake}
-                    className="bg-red-500 hover:bg-red-600"
-                  >
-                    <ArrowUpRight className="mr-2 h-4 w-4" />
-                    Initiate Unstake
-                  </Button>
-                ) : (
-                  <div className="space-y-2">
-                    {Date.now() < cooldownEnd ? (
-                      <div className="text-gray-400">
-                        Cooldown ends in: {Math.ceil((cooldownEnd - Date.now()) / 1000)} seconds
-                      </div>
-                    ) : (
-                      <Button
-                        onClick={completeUnstake}
-                        className="bg-green-500 hover:bg-green-600"
-                      >
-                        Complete Unstake
-                      </Button>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {stakingStatus.error && (
-              <div className="text-red-400 mt-2">
-                {stakingStatus.error}
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+    
 
       <Card className="bg-gray-800/50 border-gray-700 mb-6">
         <CardContent className="p-6">
