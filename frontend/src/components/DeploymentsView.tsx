@@ -11,11 +11,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Search, Github, Globe, User, Clock, RefreshCwIcon, Drop } from 'lucide-react';
+import { Loader2, Search, Github, Globe, User, Clock, RefreshCwIcon, Drop, MessageSquare } from 'lucide-react';
 import contractData from "../contracts/ETHVercel.json";
 import VerifiableDeploymentCard from './VerifiableDeploymentCard';
+import AttestationWidget from './AttestationWidget';
+import { setPimlicoAsProvider } from '@zerodev/sdk';
 
-const DeploymentCard = ({ deployment }) => {
+const DeploymentCard = ({ deployment, provider }) => {
+
+  const [showAttestations, setShowAttestations] = useState(false);
+  const [currentNetwork, setCurrentNetwork] = useState('');
   
   const formatDate = (date) => {
     return new Date(date).toLocaleDateString('en-US', {
@@ -59,6 +64,13 @@ const DeploymentCard = ({ deployment }) => {
           </div>
         </div>
         <div className="flex gap-2">
+          <Button
+            onClick={() => setShowAttestations(true)}
+            className="bg-blue-500 hover:bg-blue-600 text-white rounded-lg px-3 py-2 text-sm flex items-center gap-2"
+          >
+          <MessageSquare className="w-4 h-4" />
+          Attestations
+        </Button>
           {deploymentData?.ipfsUrl && (
             <a
               href={deploymentData.ipfsUrl}
@@ -79,8 +91,13 @@ const DeploymentCard = ({ deployment }) => {
           </a>
         </div>
       </CardHeader>
-      
+      <AttestationWidget
+    isOpen={showAttestations}
+    onClose={() => setShowAttestations(false)}
+    provider={provider}
+  />
     </Card>
+   
   );
 };
 
@@ -94,9 +111,21 @@ const DeploymentsView = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('newest');
   const [showComponent, setShowComponent] = useState(false);
+  const [provider, setProvider] = useState();
 
-  const [selectedDeployment, setSelectedDeployment] = useState(null);
-  const [showVerification, setShowVerification] = useState(false);
+  // Add this useEffect to detect network
+useEffect(() => {
+  const detectNetwork = async () => {
+    if (wallets && wallets.length > 0) {
+      const provider = await wallets[0].getEthersProvider();
+      setProvider(provider);
+      const network = await provider.getNetwork();
+      setCurrentNetwork(network.name);
+    }
+  };
+  
+  detectNetwork();
+}, [wallets]);
 
   // Initialize contract
   useEffect(() => {
@@ -312,6 +341,7 @@ const DeploymentsView = () => {
                 <DeploymentCard 
                   key={`${deployment[2]}-${index}`} 
                   deployment={deployment} 
+                  provider={provider}
                 />
               
               ))
@@ -328,6 +358,8 @@ const DeploymentsView = () => {
         )}
         
       </div>
+
+      
       
     </div>
   );

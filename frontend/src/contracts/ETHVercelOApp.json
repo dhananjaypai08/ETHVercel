@@ -1,23 +1,6 @@
 {
-    "Zircuit Testnet": {
-        "Contract Address" : "0x3A92c403CcfD005C19B4a75E8ee178f3963dB85C",
-        "Link": "https://explorer.testnet.zircuit.com/address/0x3A92c403CcfD005C19B4a75E8ee178f3963dB85C"
-    },
-    "Scroll Sepolia": {
-        "Contract Address": "0x6e8c29600df7db8e229cbd95283d0bd9e52c0809",
-        "Link": "https://sepolia.scrollscan.com/address/0x6e8c29600df7db8e229cbd95283d0bd9e52c0809"
-    }, 
-    "Polygon ZKEVM": {
-        "Contract Address": "0x5894f81c558f1a302ce81d31f2562d2b19f7dafd",
-        "Link": "https://cardona-zkevm.polygonscan.com/address/0x5894f81c558f1a302ce81d31f2562d2b19f7dafd"
-    },
-    "EVM on Flow Testnet": {
-        "Contract Address": "0x3A92c403CcfD005C19B4a75E8ee178f3963dB85C",
-        "Link": "https://evm-testnet.flowscan.io/address/0x3A92c403CcfD005C19B4a75E8ee178f3963dB85C"
-    },
-    "goldsky subgraph": {
-        "Subgraph explorer Link for ETHVercel": "https://api.goldsky.com/api/public/project_cm3rlo9y0r3jf01y00qmy2kqb/subgraphs/ZKVercel/0.0.1/gn"
-    },
+    "sepolia": "0x356A76fa3e90cc2d3964ad8490b6630e21E4E04d",
+    "ble" : "0x6e8c29600Df7Db8e229Cbd95283D0bd9E52C0809",
     "abi": [
         {
             "inputs": [

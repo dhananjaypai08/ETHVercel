@@ -50,6 +50,7 @@ const DeploymentCredentials = () => {
   const { wallets } = useWallets();
   const [contract, setContract] = useState(null);
   const [provider, setProvider] = useState(null);
+  const [signer, setSigner] = useState(null);
   const [address, setAddress] = useState('');
   
   const [balances, setBalances] = useState({
@@ -79,15 +80,16 @@ const DeploymentCredentials = () => {
           setProvider(ethersProvider);
           
           const signer = await ethersProvider.getSigner();
-          const networkId = '11155111'; // Sepolia network ID
+          // const networkId = '11155111'; // Sepolia network ID
           
           const newContract = new ethers.Contract(
-            contractData.networks[networkId].address,
+            contractData.address,
             contractData.abi,
             signer
           );
           
           setContract(newContract);
+          setSigner(signer);
           setError(null);
         } catch (error) {
           console.error("Error initializing contract:", error);
@@ -116,17 +118,18 @@ const DeploymentCredentials = () => {
       if (!provider || !contract || !address) return;
 
       const ethBalance = await provider.getBalance(address);
+      
       const usdeBalance = await contract.getUSDeBalance(address);
       const susdeBalance = await contract.getSUSDeBalance(address);
-
+      // console.log(ethBalance, usdeBalance, susdeBalance);
       setBalances({
-        eth: ethers.formatEther(ethBalance),
+        eth: ethers.formatEther(ethBalance._hex),
         usde: ethers.formatEther(usdeBalance),
         susde: ethers.formatEther(susdeBalance)
       });
 
       // Check if user has any staking history
-      setHasStakingHistory(Number(susdeBalance) > 0);
+      setHasStakingHistory(Number(ethers.formatEther(susdeBalance)) > 0);
       setError(null);
     } catch (error) {
       console.error('Error fetching balances:', error);
@@ -153,19 +156,41 @@ const DeploymentCredentials = () => {
   };
 
   const handleStake = async () => {
-    if (!stakeAmount || !contract) return;
+    if (!stakeAmount || !contract || !provider || !address) return;
     
     setLoading(true);
     try {
       const amount = ethers.parseEther(stakeAmount);
-      const tx = await contract.stake(amount);
-      await tx.wait();
+      
+      // Create USDe contract instance with full ABI
+      const usdeContract = new ethers.Contract(
+        "0xf805ce4F96e0EdD6f0b6cd4be22B34b92373d696", // USDe address
+        [
+          "function approve(address spender, uint256 amount) external returns (bool)",
+          "function allowance(address owner, address spender) external view returns (uint256)",
+          "function balanceOf(address account) external view returns (uint256)"
+        ],
+        signer
+      );
+  
+      setError("Approving token spending...");
+      const approveTx = await usdeContract.approve(
+        contractData.networks["11155111"].address, // Contract address from your contract data
+        amount
+      );
+      // await approveTx.wait();
+      console.log(`${approveTx}`);
+      setError("Staking tokens...");
+      const stakeTx = await contract.stake(amount);
+      console.log(stakeTx);
+      // await stakeTx.wait();
+      
       await fetchBalances();
       setStakeAmount('');
       setError(null);
     } catch (error) {
       console.error('Error staking:', error);
-      setError("Failed to stake. Please check your balance and try again.");
+      setError(error.reason || "Failed to stake. Please check your balance and try again.");
     } finally {
       setLoading(false);
     }
