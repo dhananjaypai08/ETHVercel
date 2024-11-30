@@ -80,10 +80,10 @@ const DeploymentCredentials = () => {
           setProvider(ethersProvider);
           
           const signer = await ethersProvider.getSigner();
-          // const networkId = '11155111'; // Sepolia network ID
-          
+          const networkId = '11155111'; // Sepolia network ID
+          console.log(contractData.networks[networkId].address,)
           const newContract = new ethers.Contract(
-            contractData.address,
+            contractData.networks[networkId].address,
             contractData.abi,
             signer
           );
@@ -116,10 +116,10 @@ const DeploymentCredentials = () => {
   const fetchBalances = async () => {
     try {
       if (!provider || !contract || !address) return;
-
       const ethBalance = await provider.getBalance(address);
-      
+      console.log(ethBalance);
       const usdeBalance = await contract.getUSDeBalance(address);
+      console.log(usdeBalance);
       const susdeBalance = await contract.getSUSDeBalance(address);
       // console.log(ethBalance, usdeBalance, susdeBalance);
       setBalances({

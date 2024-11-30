@@ -7,28 +7,38 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+    }
+  },
+  optimizeDeps: {
+    esbuildOptions: {
+      // Node.js global to browser globalThis
+      define: {
+        global: 'globalThis'
+      },
     },
+    // Force include problematic dependencies
+    include: [
+      'react',
+      'react-dom',
+      'ethers',
+      'buffer',
+      'process'
+    ]
   },
   build: {
+    commonjsOptions: {
+      transformMixedEsModules: true
+    },
     rollupOptions: {
       external: [
         'react',
         'react-dom',
-        'react/jsx-runtime',
-        '@privy-io/react-auth',
-        '@web3-storage/w3up-client',
-        '@apollo/client',
-        'ethers',
-        'framer-motion',
-        'recharts',
-        'lucide-react',
-        '@zerodev/sdk',
-        '@zerodev/ecdsa-validator'
+        'react/jsx-runtime'
       ]
     }
   },
-  optimizeDeps: {
-    include: ['react', 'react-dom'],
-    exclude: ['@web3-storage/w3up-client']
+  define: {
+    'process.env': {},
+    global: 'globalThis',
   }
 })

@@ -127,7 +127,7 @@ const Deploy = () => {
       );
       
       console.log('Transaction hash:', tx.hash);
-      const explorerUrl = `https://sepolia.etherscan.io/tx/${tx.hash}`;
+      const explorerUrl = `https://testnet.explorer.ethena.fi/tx/${tx.hash}`;
       setTxnHash(explorerUrl);
   
       setDeploymentStatus(prev => ({

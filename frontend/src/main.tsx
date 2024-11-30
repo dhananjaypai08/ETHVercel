@@ -4,6 +4,7 @@ import './index.css'
 import App from './App.tsx'
 import {PrivyProvider} from '@privy-io/react-auth';
 
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <PrivyProvider

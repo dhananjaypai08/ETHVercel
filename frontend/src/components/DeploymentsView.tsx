@@ -117,7 +117,9 @@ const DeploymentsView = () => {
 useEffect(() => {
   const detectNetwork = async () => {
     if (wallets && wallets.length > 0) {
+      console.log(wallets);
       const provider = await wallets[0].getEthersProvider();
+      console.log(provider);
       setProvider(provider);
       const network = await provider.getNetwork();
       setCurrentNetwork(network.name);
@@ -146,8 +148,7 @@ useEffect(() => {
             contractData.abi,
             ethersProvider
           );
-          
-          
+
           setContract(newContract);
         } catch (error) {
           console.error("Error initializing contract:", error);
