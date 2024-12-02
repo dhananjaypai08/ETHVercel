@@ -19,6 +19,9 @@ ETHVercel is a revolutionary decentralized deployment platform that combines pri
 ### System Architecture 
 <img src="./images/SystemDesign.png"/>
 
+### Zk Working 
+<img src="./images/zk-working.png" />
+
 ### Running the Project 
 - Running the backend llm model
   ```sh
