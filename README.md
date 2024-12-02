@@ -4,7 +4,7 @@
 ETHVercel is a revolutionary decentralized deployment platform that combines privacy-preserving deployment mechanisms with tokenized deployment credentials and cross-chain attestations. By leveraging zero-knowledge proofs for access control and implementing a novel staking mechanism through sUSDE, ETHVercel creates a secure, incentivized ecosystem for decentralized application deployment.
 
 ### System Architecture 
-
+<img src="./images/SystemDesign.png"/>
 
 ### 🌟 Key Features
 #### Privacy-Preserved Deployments
