@@ -1,4 +1,17 @@
 # ETHVercel
+ Deploy projects on-chain and leverage Zk Security with Ethena Attestation service for cross-chain attestations
+
+ ## Table of Contents
+
+- [Overview](#overview)
+- [System Architecture](#system-architecture)
+- [Running the Project](#running-the-project)
+- [Key Features](#key-features)
+- [Bounty Integrations🔗](#bounty-integrations)
+  - [Ethena network and its Integration](#ethena-integration)
+  - [LayerZero Integration](#layerzero-integration)
+  - [Goldsky Integration](#goldsky-integration)
+
 
 ## Overview
 ETHVercel is a revolutionary decentralized deployment platform that combines privacy-preserving deployment mechanisms with tokenized deployment credentials and cross-chain attestations. By leveraging zero-knowledge proofs for access control and implementing a novel staking mechanism through sUSDE, ETHVercel creates a secure, incentivized ecosystem for decentralized application deployment.
@@ -6,8 +19,25 @@ ETHVercel is a revolutionary decentralized deployment platform that combines pri
 ### System Architecture 
 <img src="./images/SystemDesign.png"/>
 
-### 🌟 Key Features
-#### Privacy-Preserved Deployments
+### Running the Project 
+- Running the backend llm model
+  ```sh
+  cd backend
+  python3 -m venv env
+  source env/bin/activate
+  pip install -r requirements.txt
+  cd src
+  python3 main.py
+  ```
+- Running the frontend
+  ```sh
+  cd frontend
+  npm i
+  npm run dev
+  ```
+
+### Key Features
+####  🌟 Privacy-Preserved Deployments
 
 - ZK-powered geolocation verification
 - Response-time threshold validation
@@ -35,23 +65,31 @@ ETHVercel is a revolutionary decentralized deployment platform that combines pri
 - Natural language deployment queries
 - Comprehensive deployment insights
 
-### 🔗 Sponsor Integration Tracks
-#### Ethena Network Integration
+### Bounty Integrations
+#### Ethena Integration
 
+- Deployed Contract Link (Verified) : https://testnet.explorer.ethena.fi/address/0xB32fdc2DED2DffCfA3442Def90fb13AFBa5683A2
+- Contract code on GitHub : https://github.com/dhananjaypai08/ETHVercel/blob/encode/contracts/ETHVercel.sol
 - Primary Network: Deployment and attestation infrastructure
 - Token Integration: USDe and sUSDE for deployment credentials
 - Staking Mechanism: 15% APY yield generation
 - Impact: Created first-of-its-kind tokenized deployment rights system
 - ETHENA ATTESTATION SERVICE using O-app for attestation
 
-#### LayerZero Implementation
+#### LayerZero Integration
 
+- LayerZero's O-app support for ETHENA ATTESTATION SERVICE(EAS) on-chain : https://github.com/dhananjaypai08/ETHVercel/blob/encode/contracts/ETHVercelOApp.sol
+- Attestation Contract : https://testnet.explorer.ethena.fi/address/0x6e8c29600Df7Db8e229Cbd95283D0bd9E52C0809
+- O-app contract on Sepolia : 0x356A76fa3e90cc2d3964ad8490b6630e21E4E04d
+- O-app contract on Ble testnet : 0x6e8c29600Df7Db8e229Cbd95283D0bd9E52C0809
 - O-App Integration: Cross-chain attestation protocol
 - Omni Messaging: Universal deployment verification
 - Impact: Enabled seamless cross-chain deployment attestations
 
 #### Goldsky Integration
 
+- Subgraph Endpoint : Query endpoint : https://api.goldsky.com/api/public/project_cm3rlo9y0r3jf01y00qmy2kqb/subgraphs/ZKVercel/0.0.1/gn
+- Subgraph code : https://github.com/dhananjaypai08/ETHVercel/tree/encode/zkvercelSubgraph
 - Subgraph Development: Comprehensive deployment indexing
 - LLM Integration: Natural language deployment queries
 - Impact: Enhanced deployment discovery and analysis
